@@ -11,3 +11,6 @@ registers = {
 }
 
 print(registers.keys())
+print(registers['F'])
+print(registers['F'][0])
+print(type(registers['F'][0]))

@@ -27,7 +27,8 @@ def pass_2_(self, pc):
     #modify TA based on adddressing mode
     #write opcode?
 
-
+#checks the number and type of arguments
+#also gets the target address, if needed
 def arg_check_(self):
     #to check that the number of arguments match
     self.args = self.args.split(",")
@@ -139,25 +140,28 @@ def arg_check_(self):
 
 def build_instruction_(self, pc):
     arg_type = self.instructionDetails[0]
+    opcode = self.instructionDetails[2]
     if arg_type == 'm':
         if self.addressMode = "DIRECT":
             pass
-        elif self.addressMode = "IMMEDIATE":
+        elif self.addressMode = "IMMEDIATE":    #'#'
             pass
-        else:
+        else:   #INDIRECT; '@'
             pass
 
     elif arg_type == 'n':
-        pass
+        self.binary = opcode + hex(self.args[0])[2:] + '0'
 
     elif arg_type == 'r1,n':
-        pass
+        self.binary = opcode + g.registers[self.args[0]][0]
+        + str(int(self.args[1])-1)
 
     elif arg_type == 'r1,r2':
-        pass
+        self.binary = opcode + g.registers[self.args[0]][0]
+        + g.registers[self.args[1]][0]
 
     elif arg_type == "r1":
-        pass
+        self.binary = opcode + g.registers[self.args[0]][0] + '0'
 
     elif arg_type == '0':
-        pass
+        self.bianry = opcode

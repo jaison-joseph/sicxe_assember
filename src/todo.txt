@@ -1,0 +1,3 @@
+in pass_1 method
+add error or warning for when the RESW/RESB instruction has invalid args;
+right now we are just settign size to 1/3 as soon as we see the respective instruction

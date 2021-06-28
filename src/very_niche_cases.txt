@@ -1,0 +1,6 @@
+1. when we have an instruction that uses immediate/indirect addressing, we
+    cannot use indexed based addressing. However, if we do come across such a
+    case, we simply ignore it. Should raise an error for that.
+
+
+2. should i allow for indexed based addressing on an LDX instruction?

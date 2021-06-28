@@ -17,3 +17,5 @@ except FileNotFoundError:
 
 program_obj = Program.Program(fileName)
 program_obj.pass_1()
+program_obj.pass_2()
+program_obj.observe()

@@ -22,13 +22,16 @@ class Line():
         self.comment = -1
         self.instructionDetails = -1  #from the optable if the given line is an instruction
         self.location = -1        #the value of locctr when its at this line
+        self.programCounter = -1        #the value of locctr when its at this line
         self.size = -1   #by how much would locctr increase because of this line, bytes
         self.isDirective = False
         self.isRelative = False
 
         #pass 2
         self.targetAddress = -1
+        self.display = -1
         self.addressMode = -1
+        self.isIndexed = False
         self.binary = -1    #the final string that gets added to the outout executable
 
         #pass 1 AND pass 2
@@ -70,7 +73,7 @@ class Line():
             if self.instruction == 'RESW':
                 try:
                     self.size = int(self.args) * 3
-                    self.instructionType = "WORD"
+                    # self.instructionType = "WORD"
                     if (self.label == -1):
                         self.warnings.append("RESW instruction has no label for it")
                         return
@@ -83,7 +86,7 @@ class Line():
             elif self.instruction == 'RESB':
                 try:
                     self.size = int(self.args)
-                    self.instructionType = "BYTE"
+                    # self.instructionType = "BYTE"
                     if (self.label == -1):
                         self.warnings.append("RESB instruction has no label for it")
                         return
@@ -172,6 +175,9 @@ class Line():
                 temp[0] = self.location
                 g.symtab[self.label] = tuple(temp)
 
+    def setProgramCounter(self, locctr):
+        self.programCounter = locctr
+
     def printWarnings(self, num):
         if len(self.warnings) != 0:
             print("Line",num,":",self.warnings)
@@ -180,35 +186,14 @@ class Line():
         if len(self.errors) != 0:
             print("Line",num,":",self.errors)
 
-
-    def directiveHandler(self):
-        if self.instruction == 'START':
-            pass
-        elif self.instruction == 'END':
-            pass
-        elif self.instruction == 'RESW':
-            pass
-        elif self.instruction == 'RESB':
-            pass
-        elif self.instruction == 'WORD':
-            pass
-        elif self.instruction == 'BYTE':
-            pass
-        elif self.instruction == 'EXTDEF':
-            pass
-        elif self.instruction == 'EXTREF':
-            pass
-        elif self.instruction == 'LTORG':
-            pass
-        elif self.instruction == 'EQU':
-            pass
-        elif self.instruction == 'CSECT':
-            pass
-
     #the definitions can be found in Line_2.py
-    pass_2 = extension.pass_2_
     arg_check = extension.arg_check_
+    processInstruction = extension.processInstruction_
+    directiveHandler = extension.directiveHandler_
+    getRelative = extension.getRelative_
     build_instruction = extension.build_instruction_
+    directiveHandler = extension.directiveHandler_
+    pass_2 = extension.pass_2_
 
 # print("__name__ from line.py is: ", __name__)
 

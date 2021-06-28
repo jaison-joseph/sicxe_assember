@@ -7,6 +7,8 @@ def init():
     global littab                   #[name, operand number and type(m,r1/r2,r1/n,r1), size(1,2,3/4), opcode]
     global program_block_details
     global control_section_details
+    global register_x
+    global register_b
 
 
     registers = {
@@ -38,6 +40,8 @@ def init():
     littab = {}
     program_block_details = {}
     control_section_details = {}
+    register_b = -1
+    register_x = -1
 #end of init()
 
 def test_vars():

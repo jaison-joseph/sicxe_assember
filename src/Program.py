@@ -27,14 +27,16 @@ class Program():
                     exit(0)
             line_obj.update_symtab(self.locctr)
             self.locctr += line_obj.size
-            print([line_obj.location, line_obj.size, line_obj.label, line_obj.instruction, line_obj.args])
-        print(g.symtab)
+            if index != 0:
+                self.line_objects[index-1].setProgramCounter(self.locctr)
         # print(self.line_objects[-1].raw)
         # print(self.line_objects[-1].content)
 
     def pass_2(self):
         for index, line_obj in enumerate(self.line_objects):
-            if len(self.line_objects)-index != 1:
-                line_obj.pass_2(self.line_objects[index+1].location)
-            else:
-                line_obj.pass_2(line_obj.location)
+            line_obj.pass_2()  #since the last instruction has nothing after it
+
+    def observe(self):
+        for line_obj in self.line_objects:
+            print([line_obj.location, line_obj.size, line_obj.label, line_obj.instruction, line_obj.args, line_obj.binary])
+        print(g.symtab)

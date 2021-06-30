@@ -97,17 +97,17 @@ class Line():
             elif self.instruction == 'WORD':
                 #assert that the instruction args ar valid
                 try:
-                    if len(self.args) != 1:
-                        self.errors.append("WORD instruction can only take 1 argument")
-                        return
-                    word_value = int(self.args)
+                    # if len(self.args) != 1:
+                    #     self.errors.append("WORD instruction can only take 1 argument")
+                    #     return
+                    word_value = int(self.args, 16)
                     if (word_value < 0 or word_value > 2**24-1):      #a wword is 3 bytes long; hence the upper bound
                         self.errors.append("value for word is out of bounds")
                         return
+                    self.size = 3
                     if (self.label == -1):
                         self.warnings.append("WORD instruction has no label for it")
                         return
-                    self.size = 3
                     g.symtab[self.label] = (self.location, "WORD_CONST", word_value)
                     self.instructionType = "WORD_CONST"
                 except ValueError:
@@ -128,12 +128,12 @@ class Line():
                         if result is None:
                             self.errors.append("value for word is out of bounds")
                             return
+                    self.size = len(result.group(1))
+                    if (self.args[0][0] == 'X'):
+                        self.size = ceil(self.size/2)
                     if (self.label == -1):
                         self.warnings.append("BYTE instruction has no label for it")
                         return
-                        self.size = len(result.group(1))
-                        if (self.args[0][0] == 'X'):
-                            self.size = ceil(self.size/2)
                     g.symtab[self.label] = (self.location, "BYTE_CONST",  result.group(1))
                 except ValueError:
                     self.errors.append("value for BYTE must be an int")

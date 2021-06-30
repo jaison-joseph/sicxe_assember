@@ -47,7 +47,7 @@ def twocomp(x):
         l = '0' + l
     return l
 
-def put_together(opcode, address_mode, relativeness, disp, instructionType):
+def put_together(opcode, address_mode, relativeness, disp, instructionType, isIndexed):
     flags = {"n":"0", "i":"0", "x":"0", "b":"0", "p":"0", "e":"0"}
 
 
@@ -57,10 +57,6 @@ def put_together(opcode, address_mode, relativeness, disp, instructionType):
     elif address_mode == "IMMEDIATE":
         flags["n"] = "0"
         flags["i"] = "1"
-    elif address_mode == "INDEXED":
-        flags["n"] = "1"
-        flags["i"] = "1"
-        flags["x"] = "1"
     else:   #INDIRECT
         flags["n"] = "1"
         flags["i"] = "0"
@@ -69,20 +65,41 @@ def put_together(opcode, address_mode, relativeness, disp, instructionType):
         flags["p"] = "1"
     elif relativeness == "base":
         flags["b"] = "1"
-    elif realtiveness == "extended":
+    elif relativeness == "nothing":
+        disp = str(disp)
+        while len(disp) < 3:    #since the width of the disp field in extended mode is 20 bits
+            disp = '0'+disp
+    elif relativeness == "extended":
+        disp = str(disp)
         while len(disp) < 5:    #since the width of the disp field in extended mode is 20 bits
             disp = '0'+disp
+    elif relativeness == "sic":
+        flags["n"] = "0"
+        flags["i"] = "0"
+        disp = bin(disp)[2:]
+        while len(disp) < 15:    #since the width of the disp field in extended mode is 20 bits
+            disp = '0' + disp
+        flags['b'] = disp[0]
+        flags['p'] = disp[1]
+        flags['e'] = disp[2]
+        disp = int(disp[3:],2)
+        disp = hex(disp)
+        while len(disp) < 3:    #since the width of the disp field in extended mode is 20 bits
+            disp = '0' + disp
+
     else:   #invalid ta
         return ""
 
-    print("\n\n details: ", [opcode, address_mode, relativeness, disp, instructionType])
-    print("flags: ", flags)
+    # print("\n\n details: ", [opcode, address_mode, relativeness, disp, instructionType])
+    # print("flags: ", flags)
 
     if instructionType == "EXTENDED INSTRUCTION":
         flags["e"] = "1"
         flags["n"] = "0"
         flags["i"] = "0"
 
+    if isIndexed:
+        flags["x"] = "1"
 
     part_1 = hex(int(opcode,16) + int(flags['n']+flags['i'], 2))
     part_2 = hex(int(flags['x']+flags['b']+flags['p']+flags['e'],2))

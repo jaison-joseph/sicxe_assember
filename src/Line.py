@@ -1,4 +1,5 @@
 import global_vars as g
+import tools as t
 import Line_2 as extension
 
 import re
@@ -68,76 +69,58 @@ class Line():
             self.isDirective = True
             self.instructionType = "DIRECTIVE"
             self.size = 0
+
+            details = t.info(self.args, "all")
             #some directives allocate memory; we check if that is the case
             #and proceed to correct the size demanded by the line
+
             if self.instruction == 'RESW':
-                try:
-                    self.size = int(self.args) * 3
-                    # self.instructionType = "WORD"
-                    if (self.label == -1):
-                        self.warnings.append("RESW instruction has no label for it")
-                        return
-                    g.symtab[self.label] = (self.location, "WORD", -1)
-                    # if self.size//3 > 2**25-1 or self.size < 0:
-                    #     self.error.append("word overflow")
-                except ValueError:
+                if details["type"] != "int":
                     self.errors.append("Invalid argument for instruction")
                     return
+                self.size = int(details["content"]) * 3
+                if (self.label == -1):
+                    self.warnings.append("RESW instruction has no label for it")
+                    return
+                g.symtab[self.label] = (self.location, "WORD", -1)
+
             elif self.instruction == 'RESB':
-                try:
-                    self.size = int(self.args)
-                    # self.instructionType = "BYTE"
-                    if (self.label == -1):
-                        self.warnings.append("RESB instruction has no label for it")
-                        return
-                    g.symtab[self.label] = (self.location, "BYTE", -1)
-                except ValueError:
+                if details["type"] != "int":
                     self.errors.append("Invalid argument for instruction")
                     return
+                self.size = int(details["content"])
+                # self.instructionType = "BYTE"
+                if (self.label == -1):
+                    self.warnings.append("RESB instruction has no label for it")
+                    return
+                g.symtab[self.label] = (self.location, "BYTE", -1)
+
             elif self.instruction == 'WORD':
                 #assert that the instruction args ar valid
-                try:
-                    # if len(self.args) != 1:
-                    #     self.errors.append("WORD instruction can only take 1 argument")
-                    #     return
-                    word_value = int(self.args, 16)
-                    if (word_value < 0 or word_value > 2**24-1):      #a wword is 3 bytes long; hence the upper bound
-                        self.errors.append("value for word is out of bounds")
-                        return
-                    self.size = 3
-                    if (self.label == -1):
-                        self.warnings.append("WORD instruction has no label for it")
-                        return
-                    g.symtab[self.label] = (self.location, "WORD_CONST", word_value)
-                    self.instructionType = "WORD_CONST"
-                except ValueError:
+                if details["type"] != "int":
                     self.errors.append("value for WORD must be an int")
                     return
+                word_value = int(details["content"], 16)
+                if (word_value < 0 or word_value > 2**24-1):      #a wword is 3 bytes long; hence the upper bound
+                    self.errors.append("value for word is out of bounds")
+                    return
+                self.size = 3
+                if (self.label == -1):
+                    self.warnings.append("WORD instruction has no label for it")
+                    return
+                g.symtab[self.label] = (self.location, "WORD_CONST", word_value)
 
             elif self.instruction == 'BYTE':
                 #assert that the instruction args ar valid
-                try:
-                    if len(self.args) != 1:
-                        self.errors.append("BYTE instruction can only take 1 argument")
-                        return
-                    pattern = "^[CX]'(\w{0,3})'$"          #single quotes check
-                    pattern_2 = '^[CX]"(\w{0,3})"$'        #double quotes check
-                    result = re.search(pattern, self.args[0])
-                    if result is None:
-                        result = re.search(pattern_2, input)
-                        if result is None:
-                            self.errors.append("value for word is out of bounds")
-                            return
-                    self.size = len(result.group(1))
-                    if (self.args[0][0] == 'X'):
-                        self.size = ceil(self.size/2)
-                    if (self.label == -1):
-                        self.warnings.append("BYTE instruction has no label for it")
-                        return
-                    g.symtab[self.label] = (self.location, "BYTE_CONST",  result.group(1))
-                except ValueError:
+                if details["type"] != "int":
                     self.errors.append("value for BYTE must be an int")
                     return
+                self.size = details["size"]
+                if (self.label == -1):
+                    self.warnings.append("BYTE instruction has no label for it")
+                    return
+                g.symtab[self.label] = (self.location, "BYTE_CONST",  details["content"])
+
 
         #check if its a command from optable
         else:

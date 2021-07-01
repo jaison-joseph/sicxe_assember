@@ -108,6 +108,20 @@ def arg_check_(self):
             except KeyError:
                 self.errors.append("Argument:", arg_1, " is not defined")
                 return
+        #constant; literal pool
+        elif arg_1[0] == '=':
+            details = t.info(arg_1[1:], "all")
+            if details["type"] != "char" or details["type"] != "hex":
+                self.errors.append("invalid argument for literal constant; must be a hex of char")
+                return
+            # im not sure if the literal size should be limited
+            # if details["size"] > 3:
+            #     self.errors.append("literal size cannot exceed 3 bytes?")
+            #     return
+            if details["content"] in g.littab.keys():
+                g.littab[details["content"]].append(self.location)
+            else:
+                g.littab[details["content"]] = [self.location]
         #direct addressing mode
         else:
             try:

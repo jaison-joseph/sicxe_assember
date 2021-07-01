@@ -1,4 +1,7 @@
 import global_vars as g
+import re
+from math import ceil
+
 
 #accepts an int of base 10 and spits out a 3 digit hex number
 #in 2s complement
@@ -127,3 +130,70 @@ def get_immediate(label):
 
 def get_direct(label):
     return g.symtab[label][2]   #get the value stored at the memory location specified by the label
+
+def info(input, what_you_want):
+
+    type = -1
+    content = -1
+    size = -1
+
+    input = str(input)
+
+    #checking for a char or hex constant
+    pattern = "^C'(\w+)'$"          #single quotes check
+    pattern_2 = '^C"(\w+)"$'        #double quotes check
+    result = re.search(pattern, input)
+    if result is None:
+        result = re.search(pattern_2, input)
+        if result is None:
+            pass
+    if result is not None:
+        size = len(result.group(1))
+        type = "char"
+        content = result.group(1)
+
+    if size == -1:
+        pattern = "^X'([1234567890abcdefABCDEF]+)'$"          #single quotes check
+        pattern_2 = '^X"([1234567890abcdefABCDEF]+)"$'        #double quotes check
+        result = re.search(pattern, input)
+        if result is None:
+            result = re.search(pattern_2, input)
+            if result is None:
+                pass
+        if result is not None:
+            size = ceil(len(result.group(1))/2)
+            type = "hex"
+            content = result.group(1)
+
+
+    #maybe its a word
+    if size == -1:
+        try:
+            word_value = int(input, 16)
+            size = -1
+            type = "int"
+            content = str(input)
+        except ValueError:
+            pass
+
+    if what_you_want == 'type':
+        return type
+    elif what_you_want == 'size':
+        return size
+    elif what_you_want == 'content':
+        return content
+    elif what_you_want == 'all':
+        return {
+            "type": type,
+            "content": content,
+            "size": size
+        }
+    else:
+        return -1
+
+if __name__ == "__main__":
+    foo = info('C"EOF"', 'all')
+    print([foo["type"], foo["size"], foo["content"]] )
+    print(info('X"1eee"', 'all'))
+    print(info(123, 'all'))
+    print(info('', 'all'))

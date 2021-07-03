@@ -9,6 +9,9 @@ def init():
     global control_section_details
     global register_x
     global register_b
+    global line_objects
+    global locctr
+    global start_address
 
 
     registers = {
@@ -42,6 +45,11 @@ def init():
     control_section_details = {}
     register_b = -1
     register_x = -1
+
+    line_objects = []
+    locctr = 0
+    start_address = 0
+
 #end of init()
 
 def test_vars():

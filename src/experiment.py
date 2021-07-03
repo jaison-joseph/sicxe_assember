@@ -14,3 +14,28 @@ print(registers.keys())
 print(registers['F'])
 print(registers['F'][0])
 print(type(registers['F'][0]))
+
+a = [i for i in range(5)]
+print("before:", a)
+for ele in a:
+    ele += 2
+print("after:", a)
+
+class jj():
+
+    def __init__(self, input):
+        self.number = input
+
+array = [jj(i) for i in range(5)]
+for index, h in enumerate(array):
+    h.number += 10
+
+for obj in array:
+    print(obj.__dict__)
+
+def add(num):
+    num += 1
+
+num = 3
+add(num)
+print("num:", num)

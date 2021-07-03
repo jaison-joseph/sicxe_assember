@@ -53,11 +53,10 @@ def twocomp(x):
 def put_together(opcode, address_mode, relativeness, disp, instructionType, isIndexed):
     flags = {"n":"0", "i":"0", "x":"0", "b":"0", "p":"0", "e":"0"}
 
-
     if address_mode == "DIRECT":
         flags["n"] = "1"
         flags["i"] = "1"
-    elif address_mode == "IMMEDIATE":
+    elif address_mode == "IMMEDIATE" or address_mode == "IMMEDIATE CONST":
         flags["n"] = "0"
         flags["i"] = "1"
     else:   #INDIRECT
@@ -190,6 +189,8 @@ def info(input, what_you_want):
         }
     else:
         return -1
+
+def searchLittab()
 
 if __name__ == "__main__":
     foo = info('C"EOF"', 'all')

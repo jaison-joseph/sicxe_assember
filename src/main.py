@@ -17,7 +17,8 @@ except FileNotFoundError:
     exit(0)
 
 program_obj = Program.Program(inputFileName)
-program_obj.pass_1()
+# program_obj.pass_1()
 program_obj.pass_2()
 program_obj.observe()
+program_obj.showErrors()
 program_obj.writeToFile(outputFileName)

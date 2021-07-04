@@ -51,117 +51,7 @@ class Program():
                 g.line_objects[index].printErrors(index+1)
                 exit(0)
 
-    def writeToFile(self, outFileName):
-        debug = True
-        header = 'H'
-        textRecords = []
-        end = 'E'
-
-        if debug:
-            header += '|'
-
-        #the header bit
-        first = g.line_objects[0]
-        name = ' ' * 6
-        progStartAddress = '0' * 6
-        if first.instruction == 'START' and first.label != -1:
-                name = first.label
-                while len(name) < 6:
-                    name = ' ' + name
-        if first.instruction == "START":
-            progStartAddress = self.args
-            while len(progStartAddress) < 6:
-                progStartAddress = ' ' + progStartAddress
-
-        progSize = hex(g.locctr)[2:]
-
-        header += name
-        if debug:
-            header += '|'
-        header += progStartAddress
-        if debug:
-            header += '|'
-        header += progSize
-        if debug:
-            header += '|'
-
-        #the text records
-        counter = 0
-        lengthForRecord = 0
-        oneRecord = ''
-        startAddresss = ''
-        for line_obj in g.line_objects:
-            if line_obj.binary == -1 or counter + line_obj.size > 30 or line_obj.instruction in ["RESW", "RESB"]:
-                if counter > 0 and line_obj.instruction not in ["RESW", "RESB"]:
-                    lengthForRecord = hex(counter)[2:]
-                    while len(lengthForRecord) < 2:
-                        lengthForRecord = '0' + lengthForRecord
-                    combo = 'T'
-                    if debug:
-                        combo += '|'
-                    combo += startAddress
-                    if debug:
-                        combo += '|'
-                    combo += lengthForRecord
-                    if debug:
-                        combo += '|'
-                    combo += oneRecord
-                    if debug:
-                        combo += '|'
-                    combo += '\n'
-                    textRecords.append(combo)
-                counter = 0
-                oneRecord = ''
-            if counter == 0 and line_obj.binary != -1:
-                startAddress = str(line_obj.location)
-                while len(startAddress) < 6:
-                    startAddress = '0' + startAddress
-            if line_obj.binary != -1:
-                oneRecord += line_obj.binary
-                if debug:
-                    oneRecord += '|'
-            # if counter == 0 and line_obj.binary != -1:
-            counter += line_obj.size
-            print("counter: ", counter)
-
-        if counter > 0:
-            lengthForRecord = hex(counter)[2:]
-            while len(lengthForRecord) < 2:
-                lengthForRecord = '0' + lengthForRecord
-            combo = 'T'
-            if debug:
-                combo += '|'
-            combo += startAddress
-            if debug:
-                combo += '|'
-            combo += lengthForRecord
-            if debug:
-                combo += '|'
-            combo += oneRecord
-            if debug:
-                combo += '|'
-            combo += '\n'
-            textRecords.append(combo)
-
-        #the end record
-        if debug:
-            end += '|'
-        end += progStartAddress
-
-        # the actual writing
-        f = open("../tests/"+outFileName, "w")
-        f.write(header[:-1]) #1 '|' at the end
-        f.write('\n')
-        for rec in textRecords[:-1]:
-            f.write(rec[:-3])   #since there are 2 erroneous '|' at the end of each text record
-        f.write('\n')
-        f.write(end[:-1])     #1 '|' at the end
-        f.close()
-
-        if debug:
-            pprint.pprint(textRecords)
-
-    def outputSave(self):
+    def outputSave(self, fileName):
         debug = True
         header = 'H'
         textRecords = []
@@ -181,39 +71,84 @@ class Program():
                 progStartAddress = ' ' + progStartAddress
         progSize = hex(g.locctr)[2:]
         header = name + progStartAddress + progSize
+        if debug:
+            header = name + '|' + progStartAddress + '|' + progSize
 
         #the end record
+        if debug:
+            end += '|'
         end += progStartAddress
 
+        '''
+        text reord logic
+
+        set thirty = 0
+        set temp = ''
+
+        1. iterate through the records
+            if the new record doesnt have a binary of -1:
+                a. if the current rec +size(new rec binary) > 30:
+                        add the size of temp to temp
+                        add temp to list or records and clear temp and thirty
+                b. if thirty == 0:
+                        set up the starting address for temp
+                add the binary to temp
+                thirty += size of binary
+        2. at the end of loop, if thirty != 0
+            add the size of temp to temp
+            add temp to list or records and clear temp and thirty
+        '''
+
         #the text records
-        ctr = 0
-        thirty = 0
+        thirty = 0  #to know when we reached the length limit for a locctr
         temp_record = ''
-        size = len(self.line_objects)-1
-        for index, obj in self.line_objects:
-            increase = obj.size 
-            if ctr != obj.location:
-                if ctr in g.littab.keys():
-                    increase = g.littab[]
-            if obj.binary == -1 or ctr != obj.location:
-                if ctr != obj.location:
-                    if ctr in g.littab.keys():
+        startAddress = -1
+        for obj in g.line_objects:
+            if obj.binary != -1:
+                if thirty + obj.size > 30:
+                    print("we hit the limit")
+                    tempSize = str(thirty)
+                    if len(tempSize) < 2:
+                        tempSize = '0' + tempSize
+                    startAddress = hex(startAddress)[2:]
+                    while len(startAddress) < 6:
+                        startAddress = '0' + startAddress
+                    if debug:
+                        temp_record = 'T' + '|' + startAddress + '|' + tempSize + '|' + temp_record
+                    else:
+                        temp_record = 'T' + startAddress + tempSize + temp_record
+                    textRecords.append(temp_record)
+                    temp_record = ''
+                    thirty = 0
+                if thirty == 0:
+                    startAddress = obj.location
+                thirty += obj.size
+                temp_record += obj.binary
+                if debug:
+                    temp_record += '|'
 
-                textRecords.append(temp_record)
-                thirty = 0
-                temp_record = ''
-
-            thirty += obj.size
-            ctr += obj.size
+        if thirty != 0:
+            print ("incorporating the leftovers")
+            tempSize = str(thirty)
+            if len(tempSize) < 2:
+                tempSize = '0' + tempSize
+            startAddress = hex(startAddress)[2:]
+            while len(startAddress) < 6:
+                startAddress = '0' + startAddress
+            if debug:
+                temp_record = 'T' + '|' + startAddress + '|' + tempSize + '|' + temp_record
+            else:
+                temp_record = 'T' + startAddress + tempSize + temp_record
+            textRecords.append(temp_record)
 
         # the actual writing
-        f = open("../tests/"+outFileName, "w")
-        f.write(header[:-1]) #1 '|' at the end
+        f = open("../tests/"+fileName, "w")
+        f.write(header) #1 '|' at the end
         f.write('\n')
-        for rec in textRecords[:-1]:
-            f.write(rec[:-3])   #since there are 2 erroneous '|' at the end of each text record
-        f.write('\n')
-        f.write(end[:-1])     #1 '|' at the end
+        for rec in textRecords:
+            f.write(rec)   #1 erroneous '|' at the end of each text record
+            f.write('\n')
+        f.write(end)     #1 '|' at the end
         f.close()
 
 
@@ -223,7 +158,8 @@ class Program():
         for obj in g.line_objects:
             pprint.pprint([obj.location, obj.programCounter, obj.size, obj.label, obj.instruction,
             obj.instructionType, obj.args, obj.targetAddress, obj.binary])
-        print(g.symtab)
+        pp.pprint(g.symtab)
+        pp.pprint(g.littab)
 
     def showErrors(self):
         print("\n\n Start of error list")

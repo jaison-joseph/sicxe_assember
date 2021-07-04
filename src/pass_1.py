@@ -226,22 +226,22 @@ def directiveHandler_(self):
         print("littab", g.littab)
         if len(g.littab) == 0:
             self.warnings.append("LTORG was called, but no literals encountered yet")
-        else:
-            #assign mem locations to the variables on the littab
-            for literal in g.littab.keys():
-                locations = g.littab[literal][1]
-                details = g.littab[literal][0]
-                print("literal details: ", details)
-                g.littab[literal] = g.locctr
-                if len(locations) != 0:
-                    self.binary = ''
-                for loc in locations:
-                    for obj in g.line_objects:
-                        if obj.location == loc:
-                            obj.targetAddress = g.locctr
-                            break
-                self.size += details["size"]
-                self.binary += details["content"]
+            return
+        #assign mem locations to the variables on the littab
+        for literal in g.littab.keys():
+            locations = g.littab[literal][1]
+            details = g.littab[literal][0]
+            print("literal details: ", details)
+            g.littab[literal] = g.locctr
+            if len(locations) != 0:
+                self.binary = ''
+            for loc in locations:
+                for obj in g.line_objects:
+                    if obj.location == loc:
+                        obj.targetAddress = g.locctr
+                        break
+            self.size += details["size"]
+            self.binary += details["content"]
     elif self.instruction == 'EQU':
         pass
 

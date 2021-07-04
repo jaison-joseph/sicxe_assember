@@ -190,7 +190,6 @@ def info(input, what_you_want):
     else:
         return -1
 
-def searchLittab()
 
 if __name__ == "__main__":
     foo = info('C"EOF"', 'all')

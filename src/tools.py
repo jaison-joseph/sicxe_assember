@@ -191,6 +191,25 @@ def info(input, what_you_want):
         return -1
 
 
+def expression_value(input):
+    operation = "^(\w+)[\+-](\w+)$"          # subtraction or addition
+    result = re.search(operation, input)
+    if result is None:
+        try:
+            num =  int(input)
+            num = hex(num)[2:]
+        except ValueError:
+            return -1
+    else:
+        op1 = result.group(1)
+        op2 = result.group(2)
+        if '-' in input:
+            return ['subtraction', [op1, op2]]
+        else:
+            return ['addition', [op1, op2]]
+
+
+
 if __name__ == "__main__":
     foo = info('C"EOF"', 'all')
     print([foo["type"], foo["size"], foo["content"]] )

@@ -81,7 +81,10 @@ class Line():
             try:
                 self.instructionDetails = g.optable[self.instruction]
                 self.instructionType = "INSTRUCTION"
-                self.size = 3
+                if self.instructionDetails[0] != 'm':
+                    self.size = int(self.instructionDetails[1])
+                else:
+                    self.size = 3
             except KeyError:
                 try:
                     if self.instruction[0] != '+':

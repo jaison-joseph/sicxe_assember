@@ -242,6 +242,7 @@ def directiveHandler_(self):
                         break
             self.size += details["size"]
             self.binary += details["content"]
+
     elif self.instruction == 'EQU':
         pass
 

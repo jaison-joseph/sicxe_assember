@@ -1,3 +1,4 @@
+import pprint
 
 def init():
     global optable
@@ -75,5 +76,10 @@ if __name__ == "__main__":
     init()
     test_vars()
     classify_instructions()
+    print("\n\n optable part of it \n\n")
+    for i, obj in enumerate(optable.items()):
+        pprint.pprint(obj)
+        if i >= 20:
+            break
 else:
     init()

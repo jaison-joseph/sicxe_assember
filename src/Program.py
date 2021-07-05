@@ -41,6 +41,11 @@ class Program():
     #     # print(self.line_objects[-1].content)
 
     def pass_2(self):
+
+        print("\n\n the littab")
+        pprint.pprint(g.littab)
+        print("\n\n")
+
         for index, line_obj in enumerate(g.line_objects):
             if index != len(g.line_objects)-1:
                 g.line_objects[index].programCounter = g.line_objects[index+1].location

@@ -1,6 +1,6 @@
 import global_vars as g
 import tools as t
-
+import pprint
 # arg_types = ['', 'r1,r2', 'r1,n', 'n', 'm', 'r1']
 '''
 r1, n :: SHIFTL and SHIFTR                :: no indexed
@@ -42,7 +42,12 @@ def getTargetAddress_(self):
         elif self.addressMode == "DIRECT":
             arg_details = g.symtab[arg_1]
             self.targetAddress = arg_details[0]
+        elif self.addressMode == "EXTENDED":
+            arg_details = g.symtab[arg_1[1:]]
+            self.targetAddress = arg_details[0]
     except KeyError:
+        print("error instruction details \n")
+        pprint.pprint(self.__dict__)
         self.errors.append('target address cannot be found. check argument and addressing mode')
         return
 

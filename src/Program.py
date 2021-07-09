@@ -158,12 +158,16 @@ class Program():
 
 
     def observe(self):
-        print("[location, programCounter, size, label, instruction, instructionType, ",
+        print("[location, programCounter, size, label, instruction, instructionType, addressMode, ",
         "args, targetAddress, binary]")
         for obj in g.line_objects:
             pprint.pprint([obj.location, obj.programCounter, obj.size, obj.label, obj.instruction,
-            obj.instructionType, obj.args, obj.targetAddress, obj.binary])
+            obj.instructionType, obj.addressMode, obj.args, obj.targetAddress, obj.binary])
+        print("\n\n the symtab")
+        print('{label}: (location, type, value, type[relative/absolute])')
         pp.pprint(g.symtab)
+        print("\n\n the littab")
+        print("'literal' : location")
         pp.pprint(g.littab)
 
     def showErrors(self):

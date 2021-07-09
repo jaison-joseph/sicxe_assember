@@ -73,10 +73,10 @@ def getRelative_(self):
     print(self.instruction, " :: TA :: ", disp)
     # the case of loading a const or extended fomat
     if self.addressMode == "IMMEDIATE CONST" and int(self.targetAddress) <= 0xFFF:
-        self.display = ta
+        self.display = hex(ta)[2:]
         return "nothing" #the behavior is the same, no pc or base relative addressing is needed
     if self.instructionType == "EXTENDED INSTRUCTION":
-        self.display = ta
+        self.display = hex(ta)[2:]
         return "extended"  #e for extended
     # prefer PC relative over base relative
     if -0xFFF//2 <= disp <= 0xFFF//2:

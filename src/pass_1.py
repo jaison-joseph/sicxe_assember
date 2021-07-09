@@ -130,6 +130,113 @@ def arg_check_(self):
             return
         pass
 
+def getExpressionValue_(self, input):
+    debug = True
+    ops_ = ['-', '+', '*', '/']
+    operands = []
+    one_operand = ''
+    operators = []
+
+    #we have a special case; and that is where the input is simply '*'
+    if input == '*':
+        return t.getCorrespondingNumber('*')
+
+    for bit in input:
+        if bit in ops_:
+            if len(one_operand) == 0:
+                return -1
+
+            num = t.getCorrespondingNumber(one_operand) #returns [value, 'A' or 'R']
+            if num == -1:
+                self.errors.append("Cannot find", one_operand, "in the symtab")
+                return -1
+            operands.append(num)
+            one_operand = ''
+
+            if len(operators) != 0:
+                while ops_.index(operators[-1]) >= ops_.index(bit):
+                    op1 = operands.pop()    #because we used up 2 operands
+                    op2 = operands.pop()
+                    abs_or_rel = [op1[1], op2[1]]
+                    op1 = op1[0]
+                    op2 = op2[0]
+                    single = operators.pop()
+                    if single == '-':
+                        if abs_or_rel != ['R', 'R']:
+                            self.errors.append("Cannot find value of expression; check whether the args are absolute")
+                            return
+                        operands.append([op2 - op1, 'A'])
+                    else:
+                        if abs_or_rel != ['A', 'A']:
+                            self.errors.append("Cannot find value of expression; check whether the args are absolute")
+                            return
+                    if single == '+':
+                        operands.append([op2 + op1, 'A'])
+                    elif single == '*':
+                        operands.append([op2 * op1, 'A'])
+                    else:
+                        operands.append([op2 // op1, 'A'])
+                    if len(operators) == 0:
+                        break
+            operators.append(bit)
+        else:
+            one_operand += bit
+        if debug:
+            print("\n\n")
+            print("new bit: ", bit)
+            print("operands: ", operands)
+            print("operators: ", operators)
+
+    if len(one_operand) == 0:
+        return -1
+    num = t.getCorrespondingNumber(one_operand)
+    if num == -1:
+        self.errors.append("Cannot find", one_operand, "in the symtab")
+        return
+    operands.append(num)
+
+    if debug:
+        print("finished main loop")
+        print("\n\n")
+        print("operands: ", operands)
+        print("operators: ", operators)
+
+    while (len(operands) != 1):
+        op1 = operands.pop()    #because we used up 2 operands
+        op2 = operands.pop()
+        abs_or_rel = [op1[1], op2[1]]
+        op1 = op1[0]
+        op2 = op2[0]
+        single = operators.pop()
+
+        if debug:
+            print("just before the first iteration")
+            print("\n\n")
+            print("operands: ", operands)
+            print("operators: ", operators)
+
+        if single == '-':
+            if abs_or_rel != ['R', 'R']:
+                self.errors.append("Cannot find value of expression; check whether the args are absolute")
+                return
+            operands.append([op2 - op1, 'A'])
+        else:
+            if abs_or_rel != ['A', 'A']:
+                self.errors.append("Cannot find value of expression; check whether the args are absolute")
+                return
+            if single == '+':
+                operands.append([op2 + op1, 'A'])
+            elif single == '*':
+                operands.append([op2 * op1, 'A'])
+            else:
+                operands.append([op2 // op1, 'A'])
+        if debug:
+            print("\n\n")
+            print("operands: ", operands)
+            print("operators: ", operators)
+
+    return operands[0]
+
 def directiveHandler_(self):
 
     details = t.info(self.args, "all")
@@ -159,7 +266,7 @@ def directiveHandler_(self):
         if (self.label == -1):
             self.warnings.append("RESW instruction has no label for it")
             return
-        g.symtab[self.label] = (self.location, "WORD", -1)
+        g.symtab[self.label] = (self.location, "WORD", -1, "R")
 
     elif self.instruction == 'RESB':
         if details["type"] != "int":
@@ -195,7 +302,7 @@ def directiveHandler_(self):
         while 2*len(value) < self.size:
             value = '0'+ value
         self.binary = value
-        g.symtab[self.label] = (self.location, "WORD_CONST", value)
+        g.symtab[self.label] = (self.location, "WORD_CONST", value, "R")
 
     elif self.instruction == 'BYTE':
         #assert that the instruction args ar valid
@@ -222,29 +329,54 @@ def directiveHandler_(self):
     elif self.instruction == 'EXTREF':
         pass
 
+    #the littab currently is in the format: {literal : [details, [self.location]]}
+    #for each entry in the littab, we give it a location by icrementing locctr approproately
+    #each entry also has the locations where the literal is used; we go and update the ta for the instructions
+    #in each of those locations
+    #
     elif self.instruction == 'LTORG':
         print("littab", g.littab)
         if len(g.littab) == 0:
             self.warnings.append("LTORG was called, but no literals encountered yet")
             return
         #assign mem locations to the variables on the littab
+        next_const_location = g.locctr
         for literal in g.littab.keys():
             locations = g.littab[literal][1]
             details = g.littab[literal][0]
             print("literal details: ", details)
-            g.littab[literal] = g.locctr
+            g.littab[literal] = next_const_location
             if len(locations) != 0:
                 self.binary = ''
             for loc in locations:
                 for obj in g.line_objects:
                     if obj.location == loc:
-                        obj.targetAddress = g.locctr
+                        obj.targetAddress = next_const_location
                         break
             self.size += details["size"]
+            next_const_location += details["size"]
             self.binary += details["content"]
 
     elif self.instruction == 'EQU':
-        pass
+        result = self.getExpressionValue(self.args)
+        if result[0] ==  -1:
+            return
+        if result[0] < 0:
+            self.errors.append("Cannot have a negative value. This expression results in a negative value")
+            return
+        exprValue = hex(result[0])[2:]
+        if len(exprValue) % 2 != 0:
+            exprValue = '0' + exprValue
+        if len(exprValue) > 6:
+            self.errors.append("expresssion value cannot exceed 0xFFF")
+            return
+        while len(exprValue) < 6:
+            exprValue = '0' + exprValue
+        self.size = 3
+        if self.label == -1:
+            self.errors.append("Missing label for EQU operation")
+            return
+        g.symtab[self.label] = (self.location, "WORD", exprValue, result[1])
 
     elif self.instruction == 'CSECT':
         pass

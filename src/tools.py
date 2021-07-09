@@ -190,25 +190,16 @@ def info(input, what_you_want):
     else:
         return -1
 
-
-def expression_value(input):
-    operation = "^(\w+)[\+-](\w+)$"          # subtraction or addition
-    result = re.search(operation, input)
-    if result is None:
-        try:
-            num =  int(input)
-            num = hex(num)[2:]
-        except ValueError:
+def getCorrespondingNumber(input):
+    try:
+        result = int(input)
+        return [result, "A"]
+    except ValueError:
+        if input == '*':
+            return [g.locctr, 'R']
+        if input not in g.symtab.keys():
             return -1
-    else:
-        op1 = result.group(1)
-        op2 = result.group(2)
-        if '-' in input:
-            return ['subtraction', [op1, op2]]
-        else:
-            return ['addition', [op1, op2]]
-
-
+        return [g.symtab[input][0], g.symtab[input][-1]]
 
 if __name__ == "__main__":
     foo = info('C"EOF"', 'all')

@@ -100,8 +100,8 @@ class Line():
                     return
 
             if self.label != -1:
-                # g.symtab.append([self.label, self.location, "WORD_CONST", word_value])
-                g.symtab[self.label] = (self.location, "INSTRUCTION", -1)
+                # g.symtab.append([self.label, self.location, "WORD_CONST", word_value, absolute/relative])
+                g.symtab[self.label] = (self.location, "INSTRUCTION", -1, "R")
 
             self.arg_check()
 
@@ -143,6 +143,7 @@ class Line():
 
     #the definitions can be found in Line_2.py
     arg_check = p1.arg_check_
+    getExpressionValue = p1.getExpressionValue_
     processInstruction = p2.processInstruction_
     directiveHandler = p1.directiveHandler_
     getRelative = p2.getRelative_

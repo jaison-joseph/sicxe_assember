@@ -97,24 +97,24 @@ class Program():
         debug = True
         header = 'H'
         textRecords = []
+        modRecords = []
         end = 'E'
 
         #the header bit
         first = g.line_objects[0]
         name = ' ' * 6
-        progStartAddress = hex(g.start_address)[2:]
+        progStartAddress = t.pad(hex(g.start_address)[2:], 6, "r", '0')
         # if first.instruction == 'START' and first.label != -1:
         #     name = first.label
         #     while len(name) < 6:
         #         name = ' ' + name
         # if first.instruction == "START":
         #     progStartAddress = first.args
-        while len(progStartAddress) < 6:
-            progStartAddress = ' ' + progStartAddress
         progSize = hex(g.locctr)[2:]
-        header = name + progStartAddress + progSize
         if debug:
-            header = name + '|' + progStartAddress + '|' + progSize
+            header += '|' + name + '|' + progStartAddress + '|' + progSize
+        else:
+            header += name + progStartAddress + progSize
 
         #the end record
         if debug:
@@ -148,24 +148,35 @@ class Program():
         for obj in g.line_objects:
             if obj.isUselessLine:
                 continue
+            if obj.instructionType == "EXTENDED INSTRUCTION" and obj.addressMode == "DIRECT":
+                newRec = 'M'
+                relativeLoc = hex(obj.location - g.start_address + 1)[2:]
+                relativeLoc = t.pad(relativeLoc, 6, "r", '0')
+                length = t.pad(5, 2, "r", '0')  #5 hex long address space
+                if debug:
+                    newRec += '|' + relativeLoc + '|' + length
+                else:
+                    newRec += relativeLoc + length
+                modRecords.append(newRec)
+            if ((obj.binary == -1 and obj.size != 0) or thirty + obj.size > 30) and thirty != 0:
+                try:
+                    startAddress = t.pad(hex(startAddress)[2:], 6, 'r', '0')
+                except TypeError:
+                    print("\n the types are: ", startAddress)
+                    print("\n the types are: ", type(startAddress))
+                    exit(0)
+                tempSize = t.pad(hex(thirty)[2:], 2, 'r', '0')
+                if debug:
+                    temp_record = 'T' + '|' + startAddress + '|' + tempSize + '|' + temp_record
+                else:
+                    temp_record = 'T' + startAddress + tempSize + temp_record
+                textRecords.append(temp_record)
+                temp_record = ''
+                thirty = 0
             if obj.binary != -1:
-                if thirty + obj.size > 30:
-                    print("we hit the limit")
-                    tempSize = str(thirty)
-                    if len(tempSize) < 2:
-                        tempSize = '0' + tempSize
-                    startAddress = hex(startAddress)[2:]
-                    while len(startAddress) < 6:
-                        startAddress = '0' + startAddress
-                    if debug:
-                        temp_record = 'T' + '|' + startAddress + '|' + tempSize + '|' + temp_record
-                    else:
-                        temp_record = 'T' + startAddress + tempSize + temp_record
-                    textRecords.append(temp_record)
-                    temp_record = ''
-                    thirty = 0
                 if thirty == 0:
                     startAddress = obj.location
+                    print("ooolala:", type(startAddress))
                 thirty += obj.size
                 temp_record += obj.binary
                 if debug:
@@ -173,12 +184,8 @@ class Program():
 
         if thirty != 0:
             print ("incorporating the leftovers")
-            tempSize = str(thirty)
-            if len(tempSize) < 2:
-                tempSize = '0' + tempSize
-            startAddress = hex(startAddress)[2:]
-            while len(startAddress) < 6:
-                startAddress = '0' + startAddress
+            tempSize = t.pad(hex(thirty)[2:], 2, "r", '0')
+            startAddress = t.pad(hex(startAddress)[2:], 6, "r", '0')
             if debug:
                 temp_record = 'T' + '|' + startAddress + '|' + tempSize + '|' + temp_record
             else:
@@ -190,6 +197,9 @@ class Program():
         f.write(header) #1 '|' at the end
         f.write('\n')
         for rec in textRecords:
+            f.write(rec)   #1 erroneous '|' at the end of each text record
+            f.write('\n')
+        for rec in modRecords:
             f.write(rec)   #1 erroneous '|' at the end of each text record
             f.write('\n')
         f.write(end)     #1 '|' at the end

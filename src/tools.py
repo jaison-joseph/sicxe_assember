@@ -149,7 +149,12 @@ def info(input, what_you_want):
     if result is not None:
         size = len(result.group(1))
         type = "char"
-        content = result.group(1)
+        content = list(result.group(1))
+        for i in range(len(content)):
+            content[i] = hex(ord(content[i]))[2:]
+            if len(content[i]) < 2:
+                content[i] = '0' + content[i]
+        content = ''.join(content)
 
     if size == -1:
         pattern = "^X'([1234567890abcdefABCDEF]+)'$"          #single quotes check
@@ -201,12 +206,15 @@ def getCorrespondingNumber(input):
             return -1
         return [g.symtab[input][0], g.symtab[input][-2]]
 
-def pad(input, final_length, align = "c"):
-    input = str(input)
-    pad = ' ' * (final_length-len(input))
-    if align == "right":
+def pad(input, final_length, align = "c", bit = ' '):
+    if type(input) is not str:
+        input = str(input)
+    pad = bit * (final_length-len(input))
+    if input.count("'") and input.count('"'):   #to account for the back slash to escape the quotes while printing
+        pad = bit * (final_length-len(input)-input.count("'"))
+    if align == "r":
         return pad + input
-    elif align == "left":
+    elif align == "l":
         return input + pad
     else:
         return pad[:len(pad)//2] + input + pad[len(pad)//2:]

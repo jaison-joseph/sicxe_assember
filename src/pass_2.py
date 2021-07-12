@@ -25,8 +25,8 @@ no argument: FIX, FLOAT, HIO, NORM, RSUB, SIO, TIO  (ALL EXCEPT RSUB(3/4 size) a
 def getTargetAddress_(self):
 
     #i saw this in the text; no args but the target address was 0
+    # i just hardcoded the target address for this instruction
     if self.instruction == 'RSUB':
-        self.targetAddress = 0
         return
 
     if self.instructionDetails[0] != 'm':
@@ -197,4 +197,9 @@ def build_instruction_(self):
     elif arg_type == 'n':
         self.binary = opcode + hex(self.args[0])[2:] + '0'
     elif arg_type == '0':
-        self.binary = opcode
+        if self.instruction == "RSUB":
+            self.binary = '4F0000'
+        else:
+            while len(opcode) < 2:
+                opcode = '0' + opcode
+            self.binary = opcode

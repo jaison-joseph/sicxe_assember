@@ -24,15 +24,21 @@ no argument: FIX, FLOAT, HIO, NORM, RSUB, SIO, TIO  (ALL EXCEPT RSUB(3/4 size) a
 
 def getTargetAddress_(self):
 
+    #i saw this in the text; no args but the target address was 0
+    if self.instruction == 'RSUB':
+        self.targetAddress = 0
+        return
+
     if self.instructionDetails[0] != 'm':
         return
-    # IMMEDIATE CONST and LITERALS are aken care of in pass 1 itself
+    # the target address of IMMEDIATE CONST and LITERALS are aken care of in pass 1 itself
     if self.targetAddress != -1:
         return
 
     arg_1 = self.args[0]
 
     try:
+        arg_details = []
         if self.addressMode == "IMMEDIATE":
             arg_details = g.symtab[arg_1[1:]]
             self.targetAddress = arg_details[0]
@@ -41,10 +47,13 @@ def getTargetAddress_(self):
             self.targetAddress = arg_details[0]
         elif self.addressMode == "DIRECT":
             arg_details = g.symtab[arg_1]
+            if self.instruction == 'TD':
+                print("arg_details:", arg_details)
             self.targetAddress = arg_details[0]
         elif self.addressMode == "EXTENDED":
             arg_details = g.symtab[arg_1[1:]]
             self.targetAddress = arg_details[0]
+        self.targetAddress += g.program_block_details[arg_details[4]][1]    #adding the start location of the program block
     except KeyError:
         print("error instruction details \n")
         pprint.pprint(self.__dict__)
@@ -70,7 +79,7 @@ def getRelative_(self):
     ta = self.targetAddress
     pc = self.programCounter
     disp = ta - pc
-    print(self.instruction, " :: TA :: ", disp)
+    # print(self.instruction, " :: TA :: ", disp)
     # the case of loading a const or extended fomat
     if self.addressMode == "IMMEDIATE CONST" and int(self.targetAddress) <= 0xFFF:
         self.display = hex(ta)[2:]
@@ -88,19 +97,26 @@ def getRelative_(self):
             return "sic"
         self.errors.append("Cannot perform base relative addressing since base register has not been set")
         return ""
-    disp = ta - g.register_b
+    try:
+        disp = ta - int(g.register_b, 16)
+    except:
+        print(type(ta), "::", ta)
+        print(type(g.register_b), "::", g.register_b)
+        exit(0)
     if 0 <= disp <= 0xFFF:
-        self.display = twocomp(disp)
+        self.display = t.twocomp(disp)
         return "base"
 
 # for the LDB/LDX instructions, we need to get the actaul values into the registers
 # in case we need to do base or index based addressing
 def processInstruction_(self):
     if self.instruction == 'CLEAR':
+        print("start of clear")
         if self.args[0] == 'B':
-            g.register_b == 0x000000
+            g.register_b = '0'*6
         elif self.args[0] == 'X':
-            g.register_x == 0x000000
+            print("hit the CLEAR X instruction")
+            g.register_x = '0'*6
 
     elif self.instruction == 'LDB':
         if self.addressMode == "DIRECT":
@@ -108,7 +124,9 @@ def processInstruction_(self):
             if foo[2] == -1:
                 self.errors.append("variable", self.args[0], "has not been initialised")
                 return
-            g.register_b == int(foo[2], 16)
+            g.register_b == foo[2]
+            while len(g.register_b) < 6:
+                g.register_b = '0' + g.register_b
             # remember that one can only use indexed addressing along with direct addressing
             if self.isIndexed:
                 if g.register_x == -1:
@@ -121,7 +139,7 @@ def processInstruction_(self):
                 g.register_b = '0' + g.register_b
 
         elif self.addressMode == "IMMEDIATE":
-            g.register_b = hex(t.get_immediate(g.args[0][1:]))[2:]
+            g.register_b = hex(t.get_immediate(self.args[0][1:]))[2:]
             while len(g.register_b) < 6:
                 g.register_b = '0' + g.register_b
         elif self.addressMode == "INDIRECT":
@@ -139,7 +157,9 @@ def processInstruction_(self):
                 self.errors.append("variable has not been initialised")
                 return
             else:
-                g.register_x == int(foo[2], 16)
+                g.register_x == [2]
+                while len(g.register_x) < 6:
+                    g.register_x = '0' + g.register_x
                 # remember that one can only use indexed addressing along with direct addressing
                 if self.isIndexed:
                     self.errors.append("Cannot use indexxed based addressing here")
@@ -154,7 +174,6 @@ def processInstruction_(self):
                 g.register_x = '0' + g.register_x
 
         elif self.addressMode == "IMMEDIATE CONST":
-            print("got here!!!")
             g.register_x = hex(self.targetAddress)[2:]
             while len(g.register_x) < 6:
                 g.register_x = '0' + g.register_x
@@ -174,7 +193,7 @@ def build_instruction_(self):
     elif arg_type == 'r1,n':
         self.binary = opcode + g.registers[self.args[0]][0] + hex(int(self.args[1])-1)[2:]
     elif arg_type == 'r1':
-        self.binary = opcode + g.registers[self.args[0]][0] + g.registers[self.args[1]][0]
+        self.binary = opcode + g.registers[self.args[0]][0] + '0'
     elif arg_type == 'n':
         self.binary = opcode + hex(self.args[0])[2:] + '0'
     elif arg_type == '0':

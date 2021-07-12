@@ -20,7 +20,7 @@ class Line():
         self.content = -1
         self.instruction = -1
         self.instructionType = -1
-        self.args = []
+        self.args = ''
         self.comment = -1
         self.instructionDetails = -1  #from the optable if the given line is an instruction
         self.location = -1        #the value of locctr when its at this line
@@ -28,6 +28,7 @@ class Line():
         self.size = -1   #by how much would locctr increase because of this line, bytes
         self.isDirective = False
         self.isRelative = False
+        self.isUselessLine = False
 
         #pass 2
         self.targetAddress = -1
@@ -54,6 +55,11 @@ class Line():
             if self.raw[-1] != '\n':
                 self.content = self.raw
 
+        if len(self.content) == 0:
+            self.isUselessLine = True
+            self.size = 0
+            return
+
         #split the <content> into <label> <instruction> <args>
         slices = [x for x in self.content.split('\t') if x != '']
         if len(slices) == 2:
@@ -77,36 +83,40 @@ class Line():
 
         #check if its a command from optable
         else:
-            #extended format command
             try:
-                self.instructionDetails = g.optable[self.instruction]
-                self.instructionType = "INSTRUCTION"
-                if self.instructionDetails[0] != 'm':
-                    self.size = int(self.instructionDetails[1])
+                #extended format command
+                if self.instruction[0] == '+':
+                    self.instructionDetails = g.optable[self.instruction[1:]]
+                    if self.instructionDetails[0] != 'm':
+                        self.errors.append("This instruction cannot be used in extended mode")
+                        return
+                else:
+                    self.instructionDetails = g.optable[self.instruction]
+            except KeyError:
+                self.errors.append("Instruction:", self.instruction, "is invalid")
+                return
+            self.instructionType = "INSTRUCTION"
+            #setting the size of the instruction based on the instruction details
+            try:
+                self.size = int(self.instructionDetails[1])
+            # for some instructions, the size is given as '3/4' since it could be extended
+            except ValueError:
+                if self.instruction[0] == '+':
+                    self.size = 4
+                    self.instructionType = "EXTENDED INSTRUCTION"
                 else:
                     self.size = 3
-            except KeyError:
-                try:
-                    if self.instruction[0] != '+':
-                        raise KeyError
-                    self.instructionDetails = g.optable[self.instruction[1:]]
-                    if self.instructionDetails[1] != '3/4':
-                        self.errors.append("Command:", self.instruction, "cannot be used in extended mode")
-                        return
-                    self.instructionType = "EXTENDED INSTRUCTION"
-                    self.size = 4
-                except KeyError:
-                    self.errors.append("Instruction:", self.instruction, "is invalid")
-                    return
 
             if self.label != -1:
                 # g.symtab.append([self.label, self.location, "WORD_CONST", word_value, absolute/relative])
-                g.symtab[self.label] = (self.location, "INSTRUCTION", -1, "R")
+                g.symtab[self.label] = (self.location, "INSTRUCTION", -1, "R", g.current_block)
 
             self.arg_check()
 
     def pass_2(self):
-        if self.instructionType == "DIRECTIVE":
+        if self.isUselessLine:
+            pass
+        elif self.instructionType == "DIRECTIVE":
             pass
         #argument check: that the number and type of argument matches
         else:
@@ -123,6 +133,8 @@ class Line():
 
 
     def update_symtab(self, location):
+        if self.isUselessLine:
+            return
         self.location = location
         if len(g.symtab) != 0:
             if g.symtab.get(self.label):
@@ -131,13 +143,19 @@ class Line():
                 g.symtab[self.label] = tuple(temp)
 
     def setProgramCounter(self, locctr):
+        if self.isUselessLine:
+            return
         self.programCounter = locctr
 
     def printWarnings(self, num):
+        if self.isUselessLine:
+            return
         if len(self.warnings) != 0:
             print("Line",num,":",self.warnings)
 
     def printErrors(self, num):
+        if self.isUselessLine:
+            return
         if len(self.errors) != 0:
             print("Line",num,":",self.errors)
 

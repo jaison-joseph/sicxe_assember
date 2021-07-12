@@ -1,6 +1,9 @@
 import Line
 import pprint
 import global_vars as g
+import tools as t
+import sys
+import traceback
 
 pp = pprint.PrettyPrinter()
 
@@ -10,23 +13,34 @@ class Program():
 
         f = open("../tests/"+fileName)
         for index, ln in enumerate(f):
-            line_obj = Line.Line(ln)
-            line_obj.pass_1(g.locctr)
+            try:
+                line_obj = Line.Line(ln)
+                line_obj.pass_1(g.locctr)
+            except:
+                print("error:", sys.exc_info()[1])
+                traceback.print_tb(sys.exc_info()[2])
+                print("\n\n instruction details:", line_obj.__dict__)
+                exit(0)
             if len(line_obj.errors) != 0:
                 print("Errors found in pass 1. Printing possible warnings/errors")
-                pp.pprint(g.line_objects[i].__dict__)
-                for i in range(index, -1, -1):
-                    if len(g.line_objects[i].warnings != 0):
+                pp.pprint(line_obj.__dict__)
+                for i in range(index-1, -1, -1):
+                    if len(g.line_objects[i].warnings) != 0:
                         g.line_objects[i].printWarnings(i+1)
-                    if len(g.line_objects[i].errors != 0):
+                    if len(g.line_objects[i].errors) != 0:
                         g.line_objects[i].printErrors(i+1)
-
+                exit(0)
             g.line_objects.append(line_obj)
-            if index == 0 and line_obj.instruction == "START":
-                g.locctr += g.start_address
-                line_obj.location = g.start_address
-            print("locctr: ", g.locctr, " :: size: ", line_obj.size)
             g.locctr += line_obj.size
+            if index == 0:
+                if line_obj.instruction == "START":
+                    g.locctr += g.start_address
+                    line_obj.location = g.start_address
+                if line_obj.instruction != 'CSECT':
+                    print("hit the set up for program block!")
+                    g.program_block_details[0] = ["default",g.locctr,0]
+        self.cleanUpProgramBlock()
+        self.cleanUpLittab()
 
     #
     #
@@ -40,6 +54,23 @@ class Program():
     #     # print(self.line_objects[-1].raw)
     #     # print(self.line_objects[-1].content)
 
+    def cleanUpLittab(self):
+        try:
+            if (g.literalsToProcess):
+                imaginary_instruction = Line.Line("LTORG")
+                imaginary_instruction.pass_1(g.locctr)
+                g.line_objects.append(imaginary_instruction)
+        except:
+            print("\n\n the littab")
+            pprint.pprint(g.littab)
+            exit(0)
+
+
+    def cleanUpProgramBlock(self):
+        last = g.program_block_details[len(g.program_block_details)-1]
+        last[2] = g.locctr - last[1]#setting the length of the program block
+        g.program_block_details[len(g.program_block_details)-1] = last
+
     def pass_2(self):
 
         print("\n\n the littab")
@@ -49,11 +80,17 @@ class Program():
         for index, line_obj in enumerate(g.line_objects):
             if index != len(g.line_objects)-1:
                 g.line_objects[index].programCounter = g.line_objects[index+1].location
-            if ( not line_obj.pass_2()):  #since the last instruction has nothing after it
-                print("Errors found in pass 2. Printing possible warnings/errors")
-                # pp.pprint(g.line_objects[i].__dict__)
-                g.line_objects[index].printWarnings(index+1)
-                g.line_objects[index].printErrors(index+1)
+            try:
+                if (not line_obj.pass_2()):  #since the last instruction has nothing after it
+                    print("Errors found in pass 2. Printing possible warnings/errors")
+                    # pp.pprint(g.line_objects[i].__dict__)
+                    g.line_objects[index].printWarnings(index+1)
+                    g.line_objects[index].printErrors(index+1)
+                    exit(0)
+            except:
+                print("error:", sys.exc_info()[:2])
+                traceback.print_tb(sys.exc_info()[2])
+                print("\n\n instruction details:", line_obj.__dict__)
                 exit(0)
 
     def outputSave(self, fileName):
@@ -65,15 +102,15 @@ class Program():
         #the header bit
         first = g.line_objects[0]
         name = ' ' * 6
-        progStartAddress = '0' * 6
-        if first.instruction == 'START' and first.label != -1:
-            name = first.label
-            while len(name) < 6:
-                name = ' ' + name
-        if first.instruction == "START":
-            progStartAddress = self.args
-            while len(progStartAddress) < 6:
-                progStartAddress = ' ' + progStartAddress
+        progStartAddress = hex(g.start_address)[2:]
+        # if first.instruction == 'START' and first.label != -1:
+        #     name = first.label
+        #     while len(name) < 6:
+        #         name = ' ' + name
+        # if first.instruction == "START":
+        #     progStartAddress = first.args
+        while len(progStartAddress) < 6:
+            progStartAddress = ' ' + progStartAddress
         progSize = hex(g.locctr)[2:]
         header = name + progStartAddress + progSize
         if debug:
@@ -109,6 +146,8 @@ class Program():
         temp_record = ''
         startAddress = -1
         for obj in g.line_objects:
+            if obj.isUselessLine:
+                continue
             if obj.binary != -1:
                 if thirty + obj.size > 30:
                     print("we hit the limit")
@@ -158,16 +197,34 @@ class Program():
 
 
     def observe(self):
-        print("[location, programCounter, size, label, instruction, instructionType, addressMode, ",
-        "args, targetAddress, binary]")
+
+        line_obj_pad = [4, 8, 12, 4, 20, 10]
+        line_obj_desc = ['loc', 'label' ,'instruction', 'TA',
+        'args', 'binary']
+        print("\n\n the line objects")
+        for i in range(len(line_obj_desc)):
+            line_obj_desc[i] = t.pad(line_obj_desc[i], line_obj_pad[i])
+        print(line_obj_desc)
         for obj in g.line_objects:
-            pprint.pprint([obj.location, obj.programCounter, obj.size, obj.label, obj.instruction,
-            obj.instructionType, obj.addressMode, obj.args, obj.targetAddress, obj.binary])
+            temp = [hex(obj.location)[2:], obj.label, obj.instruction,
+            obj.targetAddress, obj.args, obj.binary]
+            for i in range(len(temp)):
+                temp[i] = t.pad(temp[i], line_obj_pad[i])
+            print(temp)
+
+        symtab_pad = [10, 4, 12, 6, 20, 8]
+        symtab_desc = ["label", "loc", "type", "value", "[relative/absolute]", "block no"]
         print("\n\n the symtab")
-        print('{label}: (location, type, value, type[relative/absolute])')
-        pp.pprint(g.symtab)
+        for i in range(len(symtab_desc)):
+            symtab_desc[i] = t.pad(symtab_desc[i], symtab_pad[i])
+        print(symtab_desc)
+        for k in g.symtab.keys():
+            temp = [k] + list(g.symtab[k])
+            for i in range(len(temp)):
+                temp[i] = t.pad(temp[i], symtab_pad[i])
+            print(temp)
         print("\n\n the littab")
-        print("'literal' : location")
+        print("'literal' : [location, block number]")
         pp.pprint(g.littab)
 
     def showErrors(self):

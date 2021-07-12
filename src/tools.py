@@ -97,8 +97,8 @@ def put_together(opcode, address_mode, relativeness, disp, instructionType, isIn
 
     if instructionType == "EXTENDED INSTRUCTION":
         flags["e"] = "1"
-        flags["n"] = "0"
-        flags["i"] = "0"
+        flags["n"] = "1"
+        flags["i"] = "1"
 
     if isIndexed:
         flags["x"] = "1"
@@ -199,11 +199,22 @@ def getCorrespondingNumber(input):
             return [g.locctr, 'R']
         if input not in g.symtab.keys():
             return -1
-        return [g.symtab[input][0], g.symtab[input][-1]]
+        return [g.symtab[input][0], g.symtab[input][-2]]
+
+def pad(input, final_length, align = "c"):
+    input = str(input)
+    pad = ' ' * (final_length-len(input))
+    if align == "right":
+        return pad + input
+    elif align == "left":
+        return input + pad
+    else:
+        return pad[:len(pad)//2] + input + pad[len(pad)//2:]
 
 if __name__ == "__main__":
-    foo = info('C"EOF"', 'all')
-    print([foo["type"], foo["size"], foo["content"]] )
-    print(info('X"1eee"', 'all'))
-    print(info(123, 'all'))
-    print(info('', 'all'))
+    # foo = info('C"EOF"', 'all')
+    # print([foo["type"], foo["size"], foo["content"]] )
+    # print(info('X"1eee"', 'all'))
+    # print(info(123, 'all'))
+    # print(info('', 'all'))
+    print(pad('a', 4, '0'))

@@ -16,8 +16,8 @@ except FileNotFoundError:
     print('file not found. file must be placed in the \'tests\' directory')
     exit(0)
 
+# the constructor does the pass 1 stuff 
 program_obj = Program.Program(inputFileName)
-# program_obj.pass_1()
 program_obj.pass_2()
 program_obj.observe()
 program_obj.showErrors()

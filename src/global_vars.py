@@ -4,16 +4,20 @@ def init():
     global optable
     global registers
     global directives
-    global symtab                   #[label, location, type(instr, data_const, data_fixed), value(for data, if not too long?)]
-    global littab                   #[name, operand number and type(m,r1/r2,r1/n,r1), size(1,2,3/4), opcode]
-    global program_block_details
-    global control_section_details
+    # g.symtab[self.label] = (self.location, "INSTRUCTION", -1, "R", g.current_block)
+    global symtab                   # {label: (location, type(INSTRUCTION, WORD),
+                                    #          value, type(), block number)}
+    global littab                   # { (literal value: (location, block number)) }
+    global program_block_details    # {number: name startAddreess length
+
     global register_x
     global register_b
     global line_objects
     global locctr
     global start_address
+    global current_block
 
+    global literalsToProcess
 
     registers = {
         "A" : ("0" , "24"),
@@ -44,12 +48,15 @@ def init():
     littab = {}
     program_block_details = {}
     control_section_details = {}
+    line_objects = []
+
     register_b = -1
     register_x = -1
-
-    line_objects = []
     locctr = 0
     start_address = 0
+    current_block = 0
+
+    literalsToProcess = False
 
 #end of init()
 

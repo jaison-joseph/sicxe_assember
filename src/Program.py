@@ -1,4 +1,5 @@
 import Line
+import controlSection
 import pprint
 import global_vars as g
 import tools as t
@@ -11,16 +12,29 @@ class Program():
 
     def __init__(self, fileName):
 
+        self.control_sections = {}
+        self.csect_ = controlSection("")
+
+    def run(self):
         f = open("../tests/"+fileName)
         for index, ln in enumerate(f):
-            try:
-                line_obj = Line.Line(ln)
-                line_obj.pass_1(g.locctr)
-            except:
-                print("error:", sys.exc_info()[1])
-                traceback.print_tb(sys.exc_info()[2])
-                print("\n\n instruction details:", line_obj.__dict__)
-                exit(0)
+            csect_.addLine(ln)
+
+
+            if csect_.line_objects[-1].instruction == 'CSECT':
+                if index != 0:
+                    csect_.wrapUp()
+                    self.control_sections[self.name] = csect_
+                    # in a CSECT instruction, the label contains the name of the new CSECT
+                    newSectName = csect_.line_objects[-1].label
+                    if newSectName in self.control_sections.keys():
+                        print("control section name:", newSectName, "has been used already")
+                        exit(0)
+                    csect_ = controlSection(newSectName)
+                else:
+                    # there is only one line in the current ctrl sect, so -1 still works
+                    csect_.name = csect_.line_objects[-1].label
+
             if len(line_obj.errors) != 0:
                 print("Errors found in pass 1. Printing possible warnings/errors")
                 pp.pprint(line_obj.__dict__)

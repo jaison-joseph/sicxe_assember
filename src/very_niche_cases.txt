@@ -4,3 +4,7 @@
 
 
 2. should i allow for indexed based addressing on an LDX instruction?
+
+3. a check to see if we have encountered multiple instructions that are only
+  supposed to happen once?
+  

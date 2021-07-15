@@ -55,10 +55,10 @@ class Line():
             if self.raw[-1] != '\n':
                 self.content = self.raw
 
-        if len(self.content) == 0:
+        if len(self.content) == 0:      #the line is entirely a comment
             self.isUselessLine = True
             self.size = 0
-            return
+            return ""
 
         #split the <content> into <label> <instruction> <args>
         slices = [x for x in self.content.split('\t') if x != '']
@@ -94,7 +94,7 @@ class Line():
                     self.instructionDetails = g.optable[self.instruction]
             except KeyError:
                 self.errors.append("Instruction:", self.instruction, "is invalid")
-                return
+                return self.instruction
             self.instructionType = "INSTRUCTION"
             #setting the size of the instruction based on the instruction details
             try:
@@ -112,6 +112,8 @@ class Line():
                 g.symtab[self.label] = (self.location, "INSTRUCTION", -1, "R", g.current_block)
 
             self.arg_check()
+        return self.instruction
+
 
     def pass_2(self):
         if self.isUselessLine:

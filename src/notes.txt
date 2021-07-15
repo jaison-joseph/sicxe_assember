@@ -83,4 +83,10 @@ because of how we handle the EQU instruction:
 
 
 the csect instruction (to create a new ctrl section) will be found in the line objects of the previous
-ctrl section 
+ctrl section
+
+++++++++++++++++++++
+
+what each line object needs a reference of
+symtab
+current_block

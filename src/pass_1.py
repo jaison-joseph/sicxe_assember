@@ -71,14 +71,14 @@ def arg_check_(self):
             # if self.targetAddress == -1:
             #     self.errors.append("literal argument " + arg_1[1:] + " target address not set up")
             #     return
-            g.literalsToProcess = True
-            if details["content"] in g.littab.keys():
-                g.littab[details["content"]][1].append(self.location)
+            vars.literalsToProcess = True
+            if details["content"] in vars.littab.keys():
+                vars.littab[details["content"]][1].append(self.location)
             else:
                 print("\nadding", details["content"], "to the literal table")
-                g.littab[details["content"]] = [details, [self.location], g.current_block]
+                vars.littab[details["content"]] = [details, [self.location], vars.current_block]
                 print("new littab")
-                print(g.littab)
+                print(vars.littab)
 
         #direct addressing mode
         else:
@@ -272,7 +272,7 @@ def directiveHandler_(self):
         if (self.label == -1):
             self.warnings.append("RESW instruction has no label for it")
             return
-        g.symtab[self.label] = (self.location, "WORD", -1, "R", g.current_block)
+        vars.symtab[self.label] = (self.location, "WORD", -1, "R", vars.current_block)
 
     elif self.instruction == 'RESB':
         if details["type"] != "int":
@@ -287,7 +287,7 @@ def directiveHandler_(self):
         if (self.label == -1):
             self.warnings.append("RESB instruction has no label for it")
             return
-        g.symtab[self.label] = (self.location, "BYTE", -1, "R", g.current_block)
+        vars.symtab[self.label] = (self.location, "BYTE", -1, "R", vars.current_block)
 
     elif self.instruction == 'WORD':
         #assert that the instruction args ar valid
@@ -308,7 +308,7 @@ def directiveHandler_(self):
         while 2*len(value) < self.size:
             value = '0'+ value
         self.binary = value
-        g.symtab[self.label] = (self.location, "WORD_CONST", value, "R", g.current_block)
+        vars.symtab[self.label] = (self.location, "WORD_CONST", value, "R", vars.current_block)
 
     elif self.instruction == 'BYTE':
         #assert that the instruction args ar valid
@@ -327,28 +327,28 @@ def directiveHandler_(self):
             while len(value) < self.size:
                 value = '0' + value
         self.binary = value
-        g.symtab[self.label] = (self.location, "BYTE_CONST",  value, "R", g.current_block)
+        vars.symtab[self.label] = (self.location, "BYTE_CONST",  value, "R", vars.current_block)
 
     elif self.instruction == 'USE':
-        if len(g.line_objects) != 0:
+        if len(vars.line_objects) != 0:
             # if we had a default control section
-            if len(g.program_block_details) == 0:
-                g.program_block_details[len(g.program_block_details)] = (
+            if len(vars.program_block_details) == 0:
+                vars.program_block_details[len(vars.program_block_details)] = (
                 'default', g.start_address, g.locctr - g.start_address)
             # if we had a previous control section whose size needs to be set up
             else:
-                recent = g.program_block_details[len(g.program_block_details)-1]
+                recent = vars.program_block_details[len(vars.program_block_details)-1]
                 recent[2] = g.locctr - recent[1]
-                g.program_block_details[len(g.program_block_details)-1] = recent
+                vars.program_block_details[len(vars.program_block_details)-1] = recent
 
         if (self.label == -1):
             self.errors.append("CSECT instruction is missing a label")
             return
-        if self.label in [details[0] for details in g.program_block_details.values()]:
+        if self.label in [details[0] for details in vars.program_block_details.values()]:
             self.errors.append("label has already been used")
             return
-        g.current_block = len(g.program_block_details)
-        g.program_block_details[len(g.program_block_details)] = (self.label, g.locctr, 0)
+        vars.current_block = len(vars.program_block_details)
+        vars.program_block_details[len(vars.program_block_details)] = (self.label, g.locctr, 0)
         g.locctr = 0
 
     elif self.instruction == 'EXTDEF':
@@ -366,27 +366,27 @@ def directiveHandler_(self):
     #in each of those locations
     #
     elif self.instruction == 'LTORG':
-        g.literalsToProcess = False
-        if len(g.littab) == 0:
+        vars.literalsToProcess = False
+        if len(vars.littab) == 0:
             self.warnings.append("LTORG was called, but no literals encountered yet")
             return
         #assign mem locations to the variables on the littab
         next_const_location = g.locctr
-        for literal in g.littab.keys():
-            if len(g.littab[literal]) == 2: #some of the literals wouls have been processed by an earlier ltorg
+        for literal in vars.littab.keys():
+            if len(vars.littab[literal]) == 2: #some of the literals wouls have been processed by an earlier ltorg
                 continue
-            locations = g.littab[literal][1]
-            details = g.littab[literal][0]
-            block_number = g.littab[literal][2]
+            locations = vars.littab[literal][1]
+            details = vars.littab[literal][0]
+            block_number = vars.littab[literal][2]
             # print("literal details: ", details)
-            g.littab[literal] = [next_const_location, block_number]
+            vars.littab[literal] = [next_const_location, block_number]
             if len(locations) != 0:
                 self.binary = ''
             for loc in locations:
-                for obj in g.line_objects:
+                for obj in vars.line_objects:
                     if obj.location == loc:
-                        # if len(g.program_block_details) != 0:
-                        obj.targetAddress = next_const_location + g.program_block_details[block_number][1]
+                        # if len(vars.program_block_details) != 0:
+                        obj.targetAddress = next_const_location + vars.program_block_details[block_number][1]
                         # else:
                         #     #we need this special condition since the program_block_details is only complete at the end of pass 1
                         #     obj.targetAddress = next_const_location + g.start_address
@@ -414,4 +414,4 @@ def directiveHandler_(self):
         if self.label == -1:
             self.errors.append("Missing label for EQU operation")
             return
-        g.symtab[self.label] = (self.location, "WORD", exprValue, result[1], g.current_block)
+        vars.symtab[self.label] = (self.location, "WORD", exprValue, result[1], vars.current_block)

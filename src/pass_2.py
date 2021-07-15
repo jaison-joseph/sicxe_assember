@@ -40,20 +40,20 @@ def getTargetAddress_(self):
     try:
         arg_details = []
         if self.addressMode == "IMMEDIATE":
-            arg_details = g.symtab[arg_1[1:]]
+            arg_details = self.vars.symtab[arg_1[1:]]
             self.targetAddress = arg_details[0]
         elif self.addressMode == "INDIRECT":
-            arg_details = g.symtab[arg_1[1:]]
+            arg_details = self.vars.symtab[arg_1[1:]]
             self.targetAddress = arg_details[0]
         elif self.addressMode == "DIRECT":
-            arg_details = g.symtab[arg_1]
+            arg_details = self.vars.symtab[arg_1]
             if self.instruction == 'TD':
                 print("arg_details:", arg_details)
             self.targetAddress = arg_details[0]
         elif self.addressMode == "EXTENDED":
-            arg_details = g.symtab[arg_1[1:]]
+            arg_details = self.vars.symtab[arg_1[1:]]
             self.targetAddress = arg_details[0]
-        self.targetAddress += g.program_block_details[arg_details[4]][1]    #adding the start location of the program block
+        self.targetAddress += self.vars.program_block_details[arg_details[4]][1]    #adding the start location of the program block
     except KeyError:
         print("error instruction details \n")
         pprint.pprint(self.__dict__)
@@ -120,7 +120,7 @@ def processInstruction_(self):
 
     elif self.instruction == 'LDB':
         if self.addressMode == "DIRECT":
-            foo = g.symtab[self.args[0]]
+            foo = self.vars.symtab[self.args[0]]
             if foo[2] == -1:
                 self.errors.append("variable", self.args[0], "has not been initialised")
                 return
@@ -152,7 +152,7 @@ def processInstruction_(self):
 
     elif self.instruction == 'LDX':
         if self.addressMode == "DIRECT":
-            foo = g.symtab[self.args[0]]
+            foo = self.vars.symtab[self.args[0]]
             if foo[2] == -1:
                 self.errors.append("variable has not been initialised")
                 return

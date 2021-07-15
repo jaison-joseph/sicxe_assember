@@ -1,0 +1,94 @@
+what to do
+
+1. const arguments in place of 'm' (ENDFIL	LDA	=C'EOF'	.INSERT END OF FILE MARKER)
+LTORG
+EQU
+*
+how to process the EQU thingy
+RDREC?
+CSECT 
+EXTREF and EXTDEF
+TAKING CARE OF THE END command (the argument of the command is wht goes on to the end record)
+
+
+
+what flight tier fo i exactly have?
+what will be the cost to change flights for all the 4 parts? based on the covid 19 webpage, i get a free change (so does that mean i only have to pay the difference?)
+
+quoting from the covid 19 webpage: Unlimited changes. No change fees. – Until July 31, 2021, 
+if you want to change your flight, we'll waive the change fee. After July 31, 2021, you can
+make one change at no extra charge. If your new fare has a higher price,
+you only need to pay the difference from your original fare.
+
+tier details within ca: https://www.aircanada.com/ca/en/aco/home/book/fare-options-and-fees/within-canada.html
+tier details intl     : https://www.aircanada.com/ca/en/aco/home/book/fare-options-and-fees/to-international-destinations.html
+covid 19 wepbage: https://www.aircanada.com/ca/en/aco/home/book/travel-news-and-updates/2020/covid-19.html
+
+
+the tier is standard
+as of now, they have a one free change policy (only pay the difference)
+you can get the value of the ticket for upto 2023 
+change fee: cant tell
+
+
+#check if its a command from optable
+        else:
+            
+            #extended format command
+            try:
+                self.instructionDetails = g.optable[self.instruction]
+                self.instructionType = "INSTRUCTION"
+                if self.instructionDetails[0] != 'm' and self.instruction != "RSUB":
+                    self.size = int(self.instructionDetails[1])
+                else:
+                    self.size = 3
+            except KeyError:
+                try:
+                    if self.instruction[0] != '+':
+                        raise KeyError
+                    self.instructionDetails = g.optable[self.instruction[1:]]
+                    if self.instructionDetails[1] != '3/4':
+                        self.errors.append("Command:", self.instruction, "cannot be used in extended mode")
+                        return
+                    self.instructionType = "EXTENDED INSTRUCTION"
+                    self.size = 4
+                except KeyError:
+                    self.errors.append("Instruction:", self.instruction, "is invalid")
+                    return
+
+            if self.label != -1:
+                # g.symtab.append([self.label, self.location, "WORD_CONST", word_value, absolute/relative])
+                g.symtab[self.label] = (self.location, "INSTRUCTION", -1, "R", g.current_block)
+
+            self.arg_check()
+
+
+
+*********************
+
++jsub
++jsub (this and previous off by 6: mine is +6)
++jsub (same issue and offset as previous)
+EOF is a string; need to get ascii of each char and use as binary
++ldt has n and i flags set to 0; this is unlike the previous extended isntructions
+
+need to add modification record for the instruction that use 
+
+summary: for the literals test case, the only reason we have discrepacies is 
+because of how we handle the EQU instruction: 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    

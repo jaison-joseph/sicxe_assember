@@ -9,15 +9,16 @@ def init():
                                     #          value, type(), block number)}
     global littab                   # { (literal value: (location, block number)) }
     global program_block_details    # {number: name startAddreess length
+    global line_objects
 
     global register_x
     global register_b
-    global line_objects
     global locctr
     global start_address
     global current_block
 
-    global literalsToProcess
+    global literalsToProcess    # a boolean to see if we have literals to proceess that have not
+                                # been covererd under  a LTORG
 
     registers = {
         "A" : ("0" , "24"),

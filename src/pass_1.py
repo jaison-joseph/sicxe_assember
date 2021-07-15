@@ -256,6 +256,7 @@ def directiveHandler_(self):
             return
 
 
+
     elif self.instruction == 'END':
         pass
 
@@ -328,7 +329,7 @@ def directiveHandler_(self):
         self.binary = value
         g.symtab[self.label] = (self.location, "BYTE_CONST",  value, "R", g.current_block)
 
-    elif self.instruction == 'CSECT':
+    elif self.instruction == 'USE':
         if len(g.line_objects) != 0:
             # if we had a default control section
             if len(g.program_block_details) == 0:
@@ -354,6 +355,9 @@ def directiveHandler_(self):
         pass
 
     elif self.instruction == 'EXTREF':
+        pass
+
+    elif self.instruction == 'CSECT':
         pass
 
     #the littab currently is in the format: {literal : [details, [self.location]]}

@@ -1,10 +1,7 @@
-import global_vars as g
-import tools as t
-import pass_1 as p1
-import pass_2 as p2
+# this class is treated like a struct since the methods of this would be class need to access the data of the ctrl section class
+# i could have simply passed the ctrl section object into the methods or treated the data of the ctrl section like a struct but i
+# felt that treating the line like a struct wud be more clean/straightforward
 
-import re
-from math import ceil
 class Line():
 
     #constructor; ALL non-boolean variables default as -1;

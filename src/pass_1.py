@@ -467,7 +467,7 @@ def directiveHandler_(self, ln):
 
     elif ln.instruction == 'EQU':
         result = self.ln_getExpressionValue(ln.args, ln)
-        print("\n the resilt of the equ expression is:", result)
+        print("\n the result of the equ expression is:", result)
         if result[0] ==  -1:
             return
         if result[0] < 0:
@@ -481,7 +481,7 @@ def directiveHandler_(self, ln):
             return
         while len(exprValue) < 6:
             exprValue = '0' + exprValue
-        ln.size = 3
+        # ln.size = 3           # i'm not sure about this; does the EQU not require to be wrotten into memory?
         if ln.label == -1:
             ln.errors.append("Missing label for EQU operation")
             return

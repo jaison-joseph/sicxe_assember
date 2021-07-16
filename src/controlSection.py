@@ -47,13 +47,13 @@ class controlSection():
                     self.ln_printErrors(i+1, self.line_objects[i])
             exit(0)
         self.line_objects.append(line_obj)
-        g.locctr += line_obj.size
         if len(self.line_objects) == 1:
             if line_obj.instruction == "START":
                 g.locctr = g.start_address
                 line_obj.location = g.start_address
             if line_obj.instruction != 'USE':
                 self.program_block_details[0] = ["default",g.locctr,0]
+        g.locctr += line_obj.size
 
     # to be called at the end of pass 1
     def wrapUp(self):
@@ -103,16 +103,18 @@ class controlSection():
 
     def dump(self):
 
-        line_obj_pad = [4, 8, 12, 4, 20, 10]
-        line_obj_desc = ['loc', 'label' ,'instruction', 'TA',
-        'args', 'binary']
+        line_obj_pad = [4, 6, 4, 12, 4, 18, 10]
+        line_obj_desc = ['loc', 'label' , 'pc', 'instruction',
+        'TA', 'args', 'binary']
         print("\n\n the line objects")
         for i in range(len(line_obj_desc)):
             line_obj_desc[i] = t.pad(line_obj_desc[i], line_obj_pad[i])
         print(line_obj_desc)
         for obj in self.line_objects:
-            temp = [hex(obj.location)[2:], obj.label, obj.instruction,
-            obj.targetAddress, obj.args, obj.binary]
+            temp = [hex(obj.location)[2:], obj.label, hex(obj.programCounter)[2:],
+            obj.instruction, hex(obj.targetAddress)[2:], obj.args, obj.binary]
+            # temp = [obj.location, obj.label, obj.programCounter,
+            # obj.instruction, obj.targetAddress, obj.args, obj.binary]
             for i in range(len(temp)):
                 temp[i] = t.pad(temp[i], line_obj_pad[i])
             print(temp)
@@ -144,8 +146,92 @@ class controlSection():
         print("\n End of error list")
 
     # returns all the records that go into the output file
-    def getOutput(self):
-        pass
+    def getRecords(self):
+        debug = True
+        textRecords = []
+        modRecords = []
+
+        '''
+        text reord logic
+
+        set thirty = 0
+        set temp = ''
+
+        1. iterate through the records
+            if the new record doesnt have a binary of -1:
+                a. if the current rec +size(new rec binary) > 30:
+                        add the size of temp to temp
+                        add temp to list or records and clear temp and thirty
+                b. if thirty == 0:
+                        set up the starting address for temp
+                add the binary to temp
+                thirty += size of binary
+        2. at the end of loop, if thirty != 0
+            add the size of temp to temp
+            add temp to list or records and clear temp and thirty
+        '''
+
+        #the text records
+        thirty = 0  #to know when we reached the length limit for a locctr
+        temp_record = ''
+        startAddress = -1
+        for obj in self.line_objects:
+            if obj.isUselessLine:
+                continue
+            if obj.instructionType == "EXTENDED INSTRUCTION" and obj.addressMode == "DIRECT":
+                newRec = 'M'
+                relativeLoc = hex(obj.location - g.start_address + 1)[2:]
+                relativeLoc = t.pad(relativeLoc, 6, "r", '0')
+                length = t.pad(5, 2, "r", '0')  #5 hex long address space
+                if debug:
+                    newRec += '|' + relativeLoc + '|' + length
+                else:
+                    newRec += relativeLoc + length
+                modRecords.append(newRec)
+            if ((obj.binary == -1 and obj.size != 0) or thirty + obj.size > 30) and thirty != 0:
+                try:
+                    startAddress = t.pad(hex(startAddress)[2:], 6, 'r', '0')
+                except TypeError:
+                    print("\n the types are: ", startAddress)
+                    print("\n the types are: ", type(startAddress))
+                    exit(0)
+                tempSize = t.pad(hex(thirty)[2:], 2, 'r', '0')
+                if debug:
+                    temp_record = 'T' + '|' + startAddress + '|' + tempSize + '|' + temp_record
+                else:
+                    temp_record = 'T' + startAddress + tempSize + temp_record
+                textRecords.append(temp_record)
+                temp_record = ''
+                thirty = 0
+            if obj.binary != -1:
+                if thirty == 0:
+                    startAddress = obj.location
+                    print("ooolala:", type(startAddress))
+                thirty += obj.size
+                temp_record += obj.binary
+                if debug:
+                    temp_record += '|'
+
+        if thirty != 0:
+            print ("incorporating the leftovers")
+            tempSize = t.pad(hex(thirty)[2:], 2, "r", '0')
+            startAddress = t.pad(hex(startAddress)[2:], 6, "r", '0')
+            if debug:
+                temp_record = 'T' + '|' + startAddress + '|' + tempSize + '|' + temp_record
+            else:
+                temp_record = 'T' + startAddress + tempSize + temp_record
+            textRecords.append(temp_record)
+
+        result = ''
+
+        for rec in textRecords:
+            result += rec
+            result += '\n'
+        for rec in modRecords:
+            result += rec
+            result += '\n'
+
+        return result
 
     #the definitions can be found in Line_2
     ln_pass_1 = p1.pass_1_

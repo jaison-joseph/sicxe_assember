@@ -17,7 +17,7 @@ except FileNotFoundError:
     exit(0)
 
 # the constructor does the pass 1 stuff
-program = Program.Program(inputFileName)
+program = Program.Program(inputFileName, outputFileName)
 # exit(0)
 program.run()
 program.dump()

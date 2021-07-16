@@ -10,17 +10,19 @@ pp = pprint.PrettyPrinter()
 
 class Program():
 
-    def __init__(self, fileName):
+    def __init__(self, inputFileName, outputFileName):
 
-        self.fileName = fileName
+        self.inputFileName = inputFileName
+        self.outputFileName = outputFileName
         self.control_sections = {}
 
     def run(self):
         self.pass_1()
         self.pass_2()
+        self.outputSave()
 
     def pass_1(self):
-        f = open("../tests/"+self.fileName)
+        f = open("../tests/"+self.inputFileName)
         csect = controlSection.controlSection("")
         for index, ln in enumerate(f):
             csect.addLine(ln)
@@ -65,15 +67,12 @@ class Program():
         exit(0)
 
 
-    def outputSave(self, fileName):
+    def outputSave(self):
         debug = True
         header = 'H'
-        textRecords = []
-        modRecords = []
         end = 'E'
 
         #the header bit
-        first = g.line_objects[0]
         name = ' ' * 6
         progStartAddress = t.pad(hex(g.start_address)[2:], 6, "r", '0')
         # if first.instruction == 'START' and first.label != -1:
@@ -93,86 +92,11 @@ class Program():
             end += '|'
         end += progStartAddress
 
-        '''
-        text reord logic
-
-        set thirty = 0
-        set temp = ''
-
-        1. iterate through the records
-            if the new record doesnt have a binary of -1:
-                a. if the current rec +size(new rec binary) > 30:
-                        add the size of temp to temp
-                        add temp to list or records and clear temp and thirty
-                b. if thirty == 0:
-                        set up the starting address for temp
-                add the binary to temp
-                thirty += size of binary
-        2. at the end of loop, if thirty != 0
-            add the size of temp to temp
-            add temp to list or records and clear temp and thirty
-        '''
-
-        #the text records
-        thirty = 0  #to know when we reached the length limit for a locctr
-        temp_record = ''
-        startAddress = -1
-        for obj in g.line_objects:
-            if obj.isUselessLine:
-                continue
-            if obj.instructionType == "EXTENDED INSTRUCTION" and obj.addressMode == "DIRECT":
-                newRec = 'M'
-                relativeLoc = hex(obj.location - g.start_address + 1)[2:]
-                relativeLoc = t.pad(relativeLoc, 6, "r", '0')
-                length = t.pad(5, 2, "r", '0')  #5 hex long address space
-                if debug:
-                    newRec += '|' + relativeLoc + '|' + length
-                else:
-                    newRec += relativeLoc + length
-                modRecords.append(newRec)
-            if ((obj.binary == -1 and obj.size != 0) or thirty + obj.size > 30) and thirty != 0:
-                try:
-                    startAddress = t.pad(hex(startAddress)[2:], 6, 'r', '0')
-                except TypeError:
-                    print("\n the types are: ", startAddress)
-                    print("\n the types are: ", type(startAddress))
-                    exit(0)
-                tempSize = t.pad(hex(thirty)[2:], 2, 'r', '0')
-                if debug:
-                    temp_record = 'T' + '|' + startAddress + '|' + tempSize + '|' + temp_record
-                else:
-                    temp_record = 'T' + startAddress + tempSize + temp_record
-                textRecords.append(temp_record)
-                temp_record = ''
-                thirty = 0
-            if obj.binary != -1:
-                if thirty == 0:
-                    startAddress = obj.location
-                    print("ooolala:", type(startAddress))
-                thirty += obj.size
-                temp_record += obj.binary
-                if debug:
-                    temp_record += '|'
-
-        if thirty != 0:
-            print ("incorporating the leftovers")
-            tempSize = t.pad(hex(thirty)[2:], 2, "r", '0')
-            startAddress = t.pad(hex(startAddress)[2:], 6, "r", '0')
-            if debug:
-                temp_record = 'T' + '|' + startAddress + '|' + tempSize + '|' + temp_record
-            else:
-                temp_record = 'T' + startAddress + tempSize + temp_record
-            textRecords.append(temp_record)
-
         # the actual writing
-        f = open("../tests/"+fileName, "w")
+        f = open("../tests/"+self.outputFileName, "w")
         f.write(header) #1 '|' at the end
         f.write('\n')
-        for rec in textRecords:
-            f.write(rec)   #1 erroneous '|' at the end of each text record
-            f.write('\n')
-        for rec in modRecords:
-            f.write(rec)   #1 erroneous '|' at the end of each text record
-            f.write('\n')
-        f.write(end)     #1 '|' at the end
+        for csect_name in self.control_sections.keys():
+            f.write(self.control_sections[csect_name].getRecords())
+        f.write(end)
         f.close()

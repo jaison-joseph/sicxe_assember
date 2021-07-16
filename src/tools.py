@@ -114,22 +114,6 @@ def put_together(opcode, address_mode, relativeness, disp, instructionType, isIn
 
     return part_1 + part_2 + disp
 
-# returns the value stored at a memory location referenced using a symbol
-# returns -1 if not initialised
-def get_indirect(label):
-    ta_address = g.symtab[label][0]
-    for key, value in g.symtab.items():
-        if value[0] == ta_address:
-            return value[2]
-    return -1
-
-# returns a memory address of type int
-def get_immediate(label):
-    return g.symtab[label][0]   #get the address of the label
-
-def get_direct(label):
-    return g.symtab[label][2]   #get the value stored at the memory location specified by the label
-
 def info(input, what_you_want):
 
     type = -1
@@ -194,17 +178,6 @@ def info(input, what_you_want):
         }
     else:
         return -1
-
-def getCorrespondingNumber(input):
-    try:
-        result = int(input)
-        return [result, "A"]
-    except ValueError:
-        if input == '*':
-            return [g.locctr, 'R']
-        if input not in g.symtab.keys():
-            return -1
-        return [g.symtab[input][0], g.symtab[input][-2]]
 
 def pad(input, final_length, align = "c", bit = ' '):
     if type(input) is not str:

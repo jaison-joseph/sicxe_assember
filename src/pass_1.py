@@ -23,16 +23,18 @@ def pass_1_(self, location, ln):
     #split the <content> into <label> <instruction> <args>
     slices = [x for x in ln.content.split('\t') if x != '']
     if len(slices) == 2:
-        ln.instruction = slices[0]
-        ln.args = slices[1]
+        if ln.raw[0] == '\t':
+            ln.instruction = slices[0]
+            ln.args = slices[1]
+        else:
+            ln.label = slices[0]
+            ln.instruction = slices[1]
     elif len(slices) == 3:
         ln.label = slices[0]
         ln.instruction = slices[1]
         ln.args = slices[2]
     else:
         ln.instruction = slices[0]
-
-    #get size of instruction
 
     # if instruction is a directive
     if ln.instruction in g.directives:
@@ -53,7 +55,7 @@ def pass_1_(self, location, ln):
             else:
                 ln.instructionDetails = g.optable[ln.instruction]
         except KeyError:
-            ln.errors.append("Instruction:", ln.instruction, "is invalid")
+            ln.errors.append("Instruction:" + ln.instruction + "is invalid")
             return
         ln.instructionType = "INSTRUCTION"
         #setting the size of the instruction based on the instruction details
@@ -205,12 +207,14 @@ def arg_check_(self, ln):
             return
         pass
 
-def getExpressionValue_(self, input, ln):
+def getExpressionValue_(self, ln):
     debug = False
     ops_ = ['-', '+', '*', '/']
     operands = []
     one_operand = ''
     operators = []
+
+    input = ln.args
 
     #we have a special case; and that is where the input is simply '*'
     if input == '*':
@@ -228,7 +232,7 @@ def getExpressionValue_(self, input, ln):
             operands.append(num)
             one_operand = ''
 
-            if len(operators) != 0:
+            try:
                 while ops_.index(operators[-1]) >= ops_.index(bit):
                     op1 = operands.pop()    #because we used up 2 operands
                     op2 = operands.pop()
@@ -239,12 +243,12 @@ def getExpressionValue_(self, input, ln):
                     if single == '-':
                         if abs_or_rel != ['R', 'R']:
                             ln.errors.append("Cannot find value of expression; check whether the args are absolute")
-                            return
+                            return -1
                         operands.append([op2 - op1, 'A'])
                     else:
                         if abs_or_rel != ['A', 'A']:
                             ln.errors.append("Cannot find value of expression; check whether the args are absolute")
-                            return
+                            return -1
                     if single == '+':
                         operands.append([op2 + op1, 'A'])
                     elif single == '*':
@@ -253,6 +257,10 @@ def getExpressionValue_(self, input, ln):
                         operands.append([op2 // op1, 'A'])
                     if len(operators) == 0:
                         break
+            except IndexError:
+                if len(operators) != 0 or len(operands) != 1:
+                    ln.errors.append("Expression is invalid")
+                    return -1
             operators.append(bit)
         else:
             one_operand += bit
@@ -267,7 +275,7 @@ def getExpressionValue_(self, input, ln):
     num = self.ln_getCorrespondingNumber(one_operand)
     if num == -1:
         ln.errors.append("Cannot find", one_operand, "in the symtab")
-        return
+        return -1
     operands.append(num)
 
     if debug:
@@ -293,12 +301,12 @@ def getExpressionValue_(self, input, ln):
         if single == '-':
             if abs_or_rel != ['R', 'R']:
                 ln.errors.append("Cannot find value of expression; check whether the args are absolute")
-                return
+                return -1
             operands.append([op2 - op1, 'A'])
         else:
             if abs_or_rel != ['A', 'A']:
                 ln.errors.append("Cannot find value of expression; check whether the args are absolute")
-                return
+                return -1
             if single == '+':
                 operands.append([op2 + op1, 'A'])
             elif single == '*':
@@ -317,6 +325,10 @@ def directiveHandler_(self, ln):
     details = t.info(ln.args, "all")
 
     if ln.instruction == 'START':
+        details = t.info(ln.args, "all")
+        if len(self.line_objects) == 1:
+            g.locctr = g.start_address
+            line_obj.location = g.start_address
         if details["type"] == "int":
             g.start_address = int(details["content"], 16)
         else:
@@ -331,6 +343,7 @@ def directiveHandler_(self, ln):
         pass
 
     elif ln.instruction == 'RESW':
+        details = t.info(ln.args, "all")
         if details["type"] != "int":
             ln.errors.append("Invalid argument for instruction")
             return
@@ -345,6 +358,7 @@ def directiveHandler_(self, ln):
         self.symtab[ln.label] = (ln.location, "WORD", -1, "R", self.current_block)
 
     elif ln.instruction == 'RESB':
+        details = t.info(ln.args, "all")
         if details["type"] != "int":
             ln.errors.append("Invalid argument for instruction")
             return
@@ -361,12 +375,17 @@ def directiveHandler_(self, ln):
 
     elif ln.instruction == 'WORD':
         #assert that the instruction args ar valid
-        if details["type"] != "int":
+        result = self.ln_getExpressionValue(ln)
+        value = result[0]
+        print("\n\n result: ", result)
+        if value == -1:
             ln.errors.append("value for WORD must be an int")
             return
-        word_value = int(details["content"], 16)
+        if result[1] != 'A':
+            ln.errors.append("the expression value is relative; absolute needed here")
+            return
         #asserting that the word value is within bounds
-        if (word_value < 0 or word_value > 2**24-1):      #a word is 3 bytes long; hence the upper bound
+        if (value < 0 or value > 2**24-1):      #a word is 3 bytes long; hence the upper bound
             ln.errors.append("value for word is out of bounds")
             return
         ln.size = 3
@@ -374,13 +393,14 @@ def directiveHandler_(self, ln):
         if (ln.label == -1):
             ln.warnings.append("WORD instruction has no label for it")
             return
-        value = details["content"]
-        while 2*len(value) < ln.size:
+        value = hex(value)[2:]
+        while len(value) < 6:
             value = '0'+ value
         ln.binary = value
         self.symtab[ln.label] = (ln.location, "WORD_CONST", value, "R", self.current_block)
 
     elif ln.instruction == 'BYTE':
+        details = t.info(ln.args, "all")
         #assert that the instruction args ar valid
         if details["type"] != "char" and details["type"] != "hex":
             ln.errors.append("value for BYTE must be a char/hex const")
@@ -422,10 +442,16 @@ def directiveHandler_(self, ln):
         g.locctr = 0
 
     elif ln.instruction == 'EXTDEF':
-        pass
+        if self.name in g.extVars.keys():
+            g.extVars[g.current_csect] = g.extVars[self.name] + ln.args.split(',')
+        else:
+            g.extVars[g.current_csect] = ln.args.split(',')
 
     elif ln.instruction == 'EXTREF':
-        pass
+        ln.args = ln.args.split(',')
+        for arg in ln.args:
+            self.symtab[arg] = (0, "WORD", -1, "R", self.current_block)
+
 
     elif ln.instruction == 'CSECT':
         pass
@@ -466,7 +492,7 @@ def directiveHandler_(self, ln):
             ln.binary += details["content"]
 
     elif ln.instruction == 'EQU':
-        result = self.ln_getExpressionValue(ln.args, ln)
+        result = self.ln_getExpressionValue(ln)
         print("\n the result of the equ expression is:", result)
         if result[0] ==  -1:
             return
@@ -496,7 +522,7 @@ def getCorrespondingNumber_(self, input):
         return [result, "A"]
     except ValueError:
         if input == '*':
-            return [g   .locctr, 'R']
+            return [g.locctr, 'R']
         if input not in self.symtab.keys():
             return -1
         return [self.symtab[input][0], self.symtab[input][-2]]

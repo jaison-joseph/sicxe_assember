@@ -78,17 +78,14 @@ def put_together(opcode, address_mode, relativeness, disp, instructionType, isIn
     elif relativeness == "sic":
         flags["n"] = "0"
         flags["i"] = "0"
-        disp = bin(disp)[2:]
-        while len(disp) < 15:    #since the width of the disp field in extended mode is 20 bits
+        disp = bin(int(disp,16))[2:]
+        print("\n the binary is:", disp)
+        while len(disp) < 14:    #since the width of the disp field in extended mode is 20 bits
             disp = '0' + disp
-        flags['b'] = disp[0]
-        flags['p'] = disp[1]
-        flags['e'] = disp[2]
-        disp = int(disp[3:],2)
-        disp = hex(disp)
-        while len(disp) < 3:    #since the width of the disp field in extended mode is 20 bits
+        disp = flags['x'] + disp
+        disp = hex(int(disp,2))[2:]
+        while len(disp) < 4:    #since the width of the disp field in extended mode is 20 bits
             disp = '0' + disp
-
     else:   #invalid ta
         return ""
 
@@ -108,6 +105,9 @@ def put_together(opcode, address_mode, relativeness, disp, instructionType, isIn
 
     part_1 = part_1[2:]
     part_2 = part_2[2:]
+
+    if relativeness == 'sic':
+        part_2 = ''
 
     while len(part_1) < 2:
         part_1 = '0' + part_1
@@ -177,7 +177,11 @@ def info(input, what_you_want):
             "size": size
         }
     else:
-        return -1
+        return {
+            "type": -1,
+            "content": -1,
+            "size": -1
+        }
 
 def pad(input, final_length, align = "c", bit = ' '):
     if type(input) is not str:

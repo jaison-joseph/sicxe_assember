@@ -10,12 +10,15 @@ def init():
     global littab                   # { (literal value: (location, block number)) }
     global program_block_details    # {number: name startAddreess length
     global line_objects
+    global extVars                  # variables that can be used by other csects
+                                    # key: name of the ctrl section || value: the vars of that csect
+
 
     global register_x
     global register_b
     global locctr
     global start_address
-    global current_block
+    global current_csect
 
     global literalsToProcess    # a boolean to see if we have literals to proceess that have not
                                 # been covererd under  a LTORG
@@ -50,12 +53,14 @@ def init():
     program_block_details = {}
     control_section_details = {}
     line_objects = []
+    extVars = {}
 
     register_b = -1
     register_x = -1
     locctr = 0
     start_address = 0
     current_block = 0
+    current_csect = -1
 
     literalsToProcess = False
 

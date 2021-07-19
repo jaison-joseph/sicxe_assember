@@ -31,6 +31,12 @@ class controlSection():
         try:
             line_obj = Line.Line(input)
             self.ln_pass_1(g.locctr, line_obj)
+            if len(self.line_objects) == 0:
+                #we can avoid checking for duplicate block names since this would be the 1st block of the csect
+                self.program_block_details[0] = ["default",g.locctr,0]
+                if line_obj.instruction == 'USE':
+                    self.program_block_details[0] = [line_obj.label,g.locctr,0]
+                print("\n\n inserted a default block \n\n")
         except:
             print("error:", sys.exc_info()[1])
             traceback.print_tb(sys.exc_info()[2])
@@ -40,19 +46,13 @@ class controlSection():
         if len(line_obj.errors) != 0:
             print("Errors found in pass 1. Printing possible warnings/errors")
             pp.pprint(line_obj.__dict__)
-            for i in range(index-1, -1, -1):
+            for i in range(len(self.line_objects)-1, -1, -1):
                 if len(self.line_objects[i].warnings) != 0:
                     self.ln_printWarnings(i+1, self.line_objects[i])
                 if len(self.line_objects[i].errors) != 0:
                     self.ln_printErrors(i+1, self.line_objects[i])
             exit(0)
         self.line_objects.append(line_obj)
-        if len(self.line_objects) == 1:
-            if line_obj.instruction == "START":
-                g.locctr = g.start_address
-                line_obj.location = g.start_address
-            if line_obj.instruction != 'USE':
-                self.program_block_details[0] = ["default",g.locctr,0]
         g.locctr += line_obj.size
 
     # to be called at the end of pass 1
@@ -113,6 +113,9 @@ class controlSection():
         for obj in self.line_objects:
             temp = [hex(obj.location)[2:], obj.label, hex(obj.programCounter)[2:],
             obj.instruction, hex(obj.targetAddress)[2:], obj.args, obj.binary]
+            if len(str(obj.binary)) > 8:
+                print("\n\n abnormal instruction relativeness:",  self.ln_getRelative(obj))
+                pp.pprint(obj.__dict__)
             # temp = [obj.location, obj.label, obj.programCounter,
             # obj.instruction, obj.targetAddress, obj.args, obj.binary]
             for i in range(len(temp)):

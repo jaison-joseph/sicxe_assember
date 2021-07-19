@@ -114,7 +114,8 @@ def getRelative_(self, ln):
         return "pc"
     if g.register_b == -1:
         # if we can avoid addresssing altogether:
-        if 0 <= disp <= 2**15-1:
+        if 0 <= disp <= 2**15-1 and ln.addressMode == "DIRECT":
+            ln.display = hex(ta)[2:]
             return "sic"
         ln.errors.append("Cannot perform base relative addressing since base register has not been set")
         return ""

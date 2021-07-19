@@ -24,22 +24,21 @@ class Program():
     def pass_1(self):
         f = open("../tests/"+self.inputFileName)
         csect = controlSection.controlSection("")
+        g.current_csect = ''
         for index, ln in enumerate(f):
             csect.addLine(ln)
-            if csect.line_objects[-1].instruction == 'CSECT':
-                if index != 0:
-                    csect.wrapUp()
-                    self.control_sections[csect.name] = csect
-                    # in a CSECT instruction, the label contains the name of the new CSECT
-                    newSectName = csect.v.line_objects[-1].label
-                    if newSectName in self.control_sections.keys():
-                        print("control section name:", newSectName, "has been used already")
-                        exit(0)
-                    csect = controlSection(newSectName)   #re setting the variable
-                    csect.startLocation = g.locctr
-                else:
-                    # there is only one line in the current ctrl sect, so -1 still works
-                    csect.name = csect.v.line_objects[-1].label
+            if csect.line_objects[-1].instruction != 'CSECT':
+                continue
+            print("\n\n ENCOUNTERED A NEW CTRL SECTION \n\n")
+            csect.wrapUp()
+            self.control_sections[csect.name] = csect
+            # in a CSECT instruction, the label contains the name of the new CSECT
+            g.current_csect = newSectName = csect.line_objects[-1].label
+            if newSectName in self.control_sections.keys():
+                print("control section name:", newSectName, "has been used already")
+                exit(0)
+            csect = controlSection.controlSection(newSectName)   #re setting the variable
+            csect.startLocation = g.locctr
         csect.wrapUp()
         self.control_sections[csect.name] = csect
     #

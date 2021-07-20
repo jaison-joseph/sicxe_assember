@@ -18,6 +18,7 @@ class Line():
         self.instruction = -1
         self.instructionType = -1
         self.args = ''
+        self.originalArgs = -1
         self.comment = -1
         self.instructionDetails = -1  #from the optable if the given line is an instruction
         self.location = -1        #the value of locctr when its at this line
@@ -32,6 +33,9 @@ class Line():
         self.display = -1
         self.addressMode = -1
         self.isIndexed = False
+        self.usesExtRef = False     # for instructions that use ext ref vars, we need to
+                                    # add a mod record for it
+                                    # the bool is set to true in getExpressionValue
         self.binary = -1    #the final string that gets added to the outout executable
 
         #pass 1 AND pass 2

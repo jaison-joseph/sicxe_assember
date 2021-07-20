@@ -68,7 +68,6 @@ class Program():
 
     def outputSave(self):
         debug = True
-        header = 'H'
         end = 'E'
 
         #the header bit
@@ -81,21 +80,15 @@ class Program():
         # if first.instruction == "START":
         #     progStartAddress = first.args
         progSize = hex(g.locctr)[2:]
-        if debug:
-            header += '|' + name + '|' + progStartAddress + '|' + progSize
-        else:
-            header += name + progStartAddress + progSize
-
-        #the end record
-        if debug:
-            end += '|'
-        end += progStartAddress
 
         # the actual writing
         f = open("../tests/"+self.outputFileName, "w")
-        f.write(header) #1 '|' at the end
-        f.write('\n')
-        for csect_name in self.control_sections.keys():
+        for ct, csect_name in enumerate(self.control_sections.keys()):
             f.write(self.control_sections[csect_name].getRecords())
-        f.write(end)
+            #for the first cscect, we need to add the address of program's start location
+            if ct == 0 and debug:
+                f.write('|')
+                f.write(progStartAddress)
+            if (ct != len(self.control_sections)-1):
+                f.write("\n\n\n")
         f.close()

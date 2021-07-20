@@ -23,6 +23,8 @@ def init():
     global literalsToProcess    # a boolean to see if we have literals to proceess that have not
                                 # been covererd under  a LTORG
 
+    global sicAddressing       # a bool to allow/block sic addressing
+
     registers = {
         "A" : ("0" , "24"),
         "X" : ("1" , "24"),
@@ -63,6 +65,7 @@ def init():
     current_csect = -1
 
     literalsToProcess = False
+    sicAddressing = False
 
 #end of init()
 

@@ -7,4 +7,5 @@
 
 3. a check to see if we have encountered multiple instructions that are only
   supposed to happen once?
-  
+
+4. need to validate the extdef and extref of each of the csect's after pass 1

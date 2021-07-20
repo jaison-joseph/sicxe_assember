@@ -72,7 +72,7 @@ def getTargetAddress_(self, ln):
         elif ln.addressMode == "EXTENDED":
             arg_details = self.symtab[arg_1[1:]]
             ln.targetAddress = arg_details[0]
-        ln.targetAddress += self.program_block_details[arg_details[4]][1]    #adding the start location of the program block
+        # ln.targetAddress += self.program_block_details[arg_details[4]][1]    #adding the start location of the program block
     # except IndexError:
     #     print(len(self.program_block_details), "::", len(arg_details)
     except KeyError:

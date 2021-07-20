@@ -1,9 +1,9 @@
 import global_vars as g
 import tools as t
 
-def pass_1_(self, location, ln):
+def pass_1_(self, ln):
 
-    ln.location = location
+    ln.location = self.locctr
 
     #split the line into <content> <comments>
     loc = ln.raw.find('.')
@@ -35,6 +35,8 @@ def pass_1_(self, location, ln):
         ln.args = slices[2]
     else:
         ln.instruction = slices[0]
+
+    ln.originalArgs = ln.args
 
     # if instruction is a directive
     if ln.instruction in g.directives:
@@ -209,7 +211,8 @@ def arg_check_(self, ln):
 
 def getExpressionValue_(self, ln):
     debug = False
-    ops_ = ['-', '+', '*', '/']
+    # ops_ = ['-', '+', '*', '/']
+    ops_ = ['-', '+']
     operands = []
     one_operand = ''
     operators = []
@@ -224,11 +227,12 @@ def getExpressionValue_(self, ln):
         if bit in ops_:
             if len(one_operand) == 0:
                 return -1
-
             num = self.ln_getCorrespondingNumber(one_operand) #returns [value, 'A' or 'R']
             if num == -1:
                 ln.errors.append("Cannot find" + one_operand + "in the symtab")
                 return -1
+            if one_operand in self.referRecords:
+                ln.usesExtRef = True
             operands.append(num)
             one_operand = ''
 
@@ -251,10 +255,10 @@ def getExpressionValue_(self, ln):
                             return -1
                     if single == '+':
                         operands.append([op2 + op1, 'A'])
-                    elif single == '*':
-                        operands.append([op2 * op1, 'A'])
-                    else:
-                        operands.append([op2 // op1, 'A'])
+                    # elif single == '*':
+                    #     operands.append([op2 * op1, 'A'])
+                    # else:
+                    #     operands.append([op2 // op1, 'A'])
                     if len(operators) == 0:
                         break
             except IndexError:
@@ -327,7 +331,7 @@ def directiveHandler_(self, ln):
     if ln.instruction == 'START':
         details = t.info(ln.args, "all")
         if len(self.line_objects) == 1:
-            g.locctr = g.start_address
+            self.locctr = g.start_address
             line_obj.location = g.start_address
         if details["type"] == "int":
             g.start_address = int(details["content"], 16)
@@ -424,11 +428,11 @@ def directiveHandler_(self, ln):
             # if we had a default control section
             if len(self.program_block_details) == 0:
                 self.program_block_details[len(self.program_block_details)] = (
-                'default', g.start_address, g.locctr - g.start_address)
+                'default', g.start_address, self.locctr - g.start_address)
             # if we had a previous control section whose size needs to be set up
             else:
                 recent = self.program_block_details[len(self.program_block_details)-1]
-                recent[2] = g.locctr - recent[1]
+                recent[2] = self.locctr - recent[1]
                 self.program_block_details[len(self.program_block_details)-1] = recent
 
         if (ln.label == -1):
@@ -438,20 +442,25 @@ def directiveHandler_(self, ln):
             ln.errors.append("label has already been used")
             return
         self.current_block = len(self.program_block_details)
-        self.program_block_details[len(self.program_block_details)] = (ln.label, g.locctr, 0)
-        g.locctr = 0
+        self.program_block_details[len(self.program_block_details)] = (ln.label, self.locctr, 0)
+        self.locctr = 0
 
     elif ln.instruction == 'EXTDEF':
         if self.name in g.extVars.keys():
-            g.extVars[g.current_csect] = g.extVars[self.name] + ln.args.split(',')
+            self.warnings.append('multiple use of EXTDEF instruction')
         else:
-            g.extVars[g.current_csect] = ln.args.split(',')
+            g.extVars[self.name] = []
+        g.extVars[self.name] = g.extVars[self.name] + ln.args.split(',')
+        for var in ln.args.split(','):
+            self.defineRecords.append(var)
 
     elif ln.instruction == 'EXTREF':
         ln.args = ln.args.split(',')
+        if len(self.referRecords) != 0:
+            self.warnings.append('multiple use of EXTREF instruction')
         for arg in ln.args:
             self.symtab[arg] = (0, "WORD", -1, "R", self.current_block)
-
+            self.referRecords.append(arg)
 
     elif ln.instruction == 'CSECT':
         pass
@@ -467,7 +476,7 @@ def directiveHandler_(self, ln):
             ln.warnings.append("LTORG was called, but no literals encountered yet")
             return
         #assign mem locations to the variables on the littab
-        next_const_location = g.locctr
+        next_const_location = self.locctr
         for literal in self.littab.keys():
             if len(self.littab[literal]) == 2: #some of the literals wouls have been processed by an earlier ltorg
                 continue
@@ -522,7 +531,7 @@ def getCorrespondingNumber_(self, input):
         return [result, "A"]
     except ValueError:
         if input == '*':
-            return [g.locctr, 'R']
+            return [self.locctr, 'R']
         if input not in self.symtab.keys():
             return -1
         return [self.symtab[input][0], self.symtab[input][-2]]

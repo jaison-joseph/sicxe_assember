@@ -15,8 +15,13 @@ class controlSection():
         self.symtab = {}
         self.program_block_details = {}
         self.line_objects = []
+        self.defineRecords = []     # initially, this will contain a list of the varaibles defined under extDef
+                                    # finally, it will be overwritten with a single String containing the final define record
+
+        self.referRecords = []      # same as the define record
+        self.locctr = 0
         self.current_block = 0
-        self.startLocation = 0
+        self.startLocation = g.locctr
         self.errorCount = 0
         self.warningCount = 0
         self.literalsToProcess = False
@@ -30,12 +35,12 @@ class controlSection():
     def addLine(self, input):
         try:
             line_obj = Line.Line(input)
-            self.ln_pass_1(g.locctr, line_obj)
+            self.ln_pass_1(line_obj)
             if len(self.line_objects) == 0:
                 #we can avoid checking for duplicate block names since this would be the 1st block of the csect
-                self.program_block_details[0] = ["default",g.locctr,0]
+                self.program_block_details[0] = ["default",self.locctr,0]
                 if line_obj.instruction == 'USE':
-                    self.program_block_details[0] = [line_obj.label,g.locctr,0]
+                    self.program_block_details[0] = [line_obj.label,self.locctr,0]
                 print("\n\n inserted a default block \n\n")
         except:
             print("error:", sys.exc_info()[1])
@@ -53,31 +58,35 @@ class controlSection():
                     self.ln_printErrors(i+1, self.line_objects[i])
             exit(0)
         self.line_objects.append(line_obj)
-        g.locctr += line_obj.size
+        self.locctr += line_obj.size
 
     # to be called at the end of pass 1
     def wrapUp(self):
         if (self.literalsToProcess):
             self.cleanUpLittab()
-        self.cleanUpProgramBlock()
+        self.cleanUpProgramBlock
+        g.locctr += self.locctr
 
     # this takes care of literals that still have to be processed by an LTORG
     # if any literals are unprocessed, we just place an LTORG instruction at the end of the current ctrl section
     def cleanUpLittab(self):
         try:
             imaginary_instruction = Line.Line("LTORG")
-            self.ln_pass_1(g.locctr, imaginary_instruction)
+            self.ln_pass_1(imaginary_instruction)
             self.line_objects.append(imaginary_instruction)
+            self.locctr += imaginary_instruction.size 
         except:
+            print("error:", sys.exc_info()[:2])
+            traceback.print_tb(sys.exc_info()[2])
             print("error happened during cleanUpLittab")
-            print("\n\n the littab")
-            pp.pprint(self.littab)
+            print("\n\n details of the messed up instruction(i think):", self.line_objects[-1].__dict__)
+            self.dump()
             exit(0)
 
     # this method is to set the length of the last program block
     def cleanUpProgramBlock(self):
         last = self.program_block_details[len(self.program_block_details)-1]
-        last[2] = g.locctr - last[1]#setting the length of the program block
+        last[2] = self.locctr - last[1]#setting the length of the program block
         self.program_block_details[len(self.program_block_details)-1] = last
 
     def pass_2(self):
@@ -149,10 +158,21 @@ class controlSection():
         print("\n End of error list")
 
     # returns all the records that go into the output file
-    def getRecords(self):
-        debug = True
+    def getRecords(self, debug = True):
+        header = 'H'
         textRecords = []
         modRecords = []
+
+        if debug:
+            header += '|'
+            header += t.pad(self.name, 6, 'l')
+            header += '|'
+            header += t.pad(hex(self.startLocation)[2:], 6, 'r','0')
+            header += '|'
+            header += t.pad(hex(self.locctr)[2:], 6, 'r','0')
+        else:
+            header += t.pad(self.name, 6, 'l') + t.pad(self.startLocation, 6, 'r','0') + t.pad(self.locctr, 6, 'r','0')
+
 
         '''
         text reord logic
@@ -181,17 +201,40 @@ class controlSection():
         for obj in self.line_objects:
             if obj.isUselessLine:
                 continue
-            if obj.instructionType == "EXTENDED INSTRUCTION" and obj.addressMode == "DIRECT":
+            if (obj.instructionType == "EXTENDED INSTRUCTION" and obj.addressMode == "DIRECT") or obj.usesExtRef:
                 newRec = 'M'
-                relativeLoc = hex(obj.location - g.start_address + 1)[2:]
+                relativeLoc = hex(obj.location - g.start_address)[2:]
+                length = t.pad(6,2,'r','0')
+                if (obj.instructionType == "EXTENDED INSTRUCTION"):
+                    relativeLoc = hex(obj.location - g.start_address + 1)[2:]
+                    length = t.pad(5, 2, "r", '0')  #5 hex long address space
                 relativeLoc = t.pad(relativeLoc, 6, "r", '0')
-                length = t.pad(5, 2, "r", '0')  #5 hex long address space
                 if debug:
-                    newRec += '|' + relativeLoc + '|' + length
+                    newRec += '|' + relativeLoc + '|' + length + '|'
                 else:
                     newRec += relativeLoc + length
-                modRecords.append(newRec)
-            if ((obj.binary == -1 and obj.size != 0) or thirty + obj.size > 30) and thirty != 0:
+                buffer = ''
+                operator = '+'
+                for ch in obj.originalArgs:
+                    if ch == '+' or ch == '-' or ch == ',':     #the ',' is for indexed addressing
+                        print("\n\n life is good \n\n")
+                        print("\n buffer: ", buffer, "\n")
+                        if buffer in self.referRecords:
+                            if debug:
+                                modRecords.append(str(newRec + operator + '|' + buffer))
+                            else:
+                                modRecords.append(str(newRec + operator + buffer))
+                        operator = ch
+                        buffer = ''
+                    else:
+                        buffer += ch
+                if buffer in self.referRecords:
+                    if debug:
+                        modRecords.append(str(newRec + operator + '|' + buffer))
+                    else:
+                        modRecords.append(str(newRec + operator + buffer))
+                    buffer = ''
+            if ((obj.binary == -1 and obj.size != 0) or thirty + obj.size - temp_record.count('|') > 30) and thirty != 0:
                 try:
                     startAddress = t.pad(hex(startAddress)[2:], 6, 'r', '0')
                 except TypeError:
@@ -200,11 +243,11 @@ class controlSection():
                     exit(0)
                 tempSize = t.pad(hex(thirty)[2:], 2, 'r', '0')
                 if debug:
-                    temp_record = 'T' + '|' + startAddress + '|' + tempSize + '|' + temp_record
+                    temp_record += '|' + startAddress + '|' + tempSize + '|' + temp_record
                 else:
-                    temp_record = 'T' + startAddress + tempSize + temp_record
+                    temp_record += + startAddress + tempSize + temp_record
                 textRecords.append(temp_record)
-                temp_record = ''
+                temp_record = 'T'
                 thirty = 0
             if obj.binary != -1:
                 if thirty == 0:
@@ -225,7 +268,67 @@ class controlSection():
                 temp_record = 'T' + startAddress + tempSize + temp_record
             textRecords.append(temp_record)
 
+        #below, we update the define and refer records of this csect
+
+        # updating the define records, if any
+        # each element of the list is of the format 'varaible name'+'location'
+        if len(self.defineRecords) != 0:
+            varNames = [foo.label for foo in self.line_objects]
+            for i, var in enumerate(self.defineRecords):
+                loc = self.line_objects[varNames.index(var)].location
+                if debug:
+                    self.defineRecords[i] = t.pad(var,6,'l') + '|' + t.pad(hex(loc)[2:], 6, 'r', '0') + '|'
+                else:
+                    self.defineRecords[i] = t.pad(var,6,'l') + t.pad(hex(loc)[2:], 6, 'r', '0')
+            if debug:   # for the erroneous '|' at the end of the last record
+                self.defineRecords[-1] = self.defineRecords[-1][:-1]
+
+        # updating refer records, if necessary
+        if len(self.referRecords) != 0:
+            for i, rec in enumerate(self.referRecords):
+                self.referRecords[i] = t.pad(rec, 6, 'l')
+                if debug:
+                    self.referRecords[i] += '|'
+            if debug:
+                self.referRecords[-1] = self.referRecords[-1][:-1]
+
+        # now, im creating a string finalDefineRecord which contains the define record for this csect
+        oneRec = 'D'
+        if debug:
+            oneRec += '|'
+        finalDefineRecord = ''
+        if len(self.defineRecords) != 0:
+            for rec in self.defineRecords:
+                if len(oneRec) + len(rec) - str(oneRec+rec).count('|') > 73:
+                    finalDefineRecord += oneRec
+                    finalDefineRecord += '\n'
+                    oneRec = 'D'
+                oneRec += rec
+            finalDefineRecord += oneRec
+
+        oneRec = 'R'
+        if debug:
+            oneRec += '|'
+        finalReferRecord = ''
+        if len(self.referRecords) != 0:
+            for rec in self.referRecords:
+                if len(oneRec) + len(rec) - str(oneRec+rec).count('|')> 73:
+                    finalReferRecord += oneRec
+                    finalReferRecord += '\n'
+                    oneRec = 'R'
+                oneRec += rec
+            finalReferRecord += oneRec
+
         result = ''
+
+        result += header
+        result += '\n'
+        result += finalDefineRecord
+        if len(finalDefineRecord) != 0:
+            result += '\n'
+        result += finalReferRecord
+        if len(finalReferRecord) != 0:
+            result += '\n'
 
         for rec in textRecords:
             result += rec
@@ -233,6 +336,8 @@ class controlSection():
         for rec in modRecords:
             result += rec
             result += '\n'
+
+        result += 'E'       # for the end record
 
         return result
 
